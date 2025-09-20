@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trainer - Videojuego Educativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark blue-gray background */
+        }
+        .glass-card {
+            background: rgba(31, 41, 55, 0.6); /* Semi-transparent dark card */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1.5rem; /* More rounded corners */
+        }
+        .game-nav-btn {
+            transition: all 0.3s ease;
+            transform: scale(1);
+        }
+        .game-nav-btn.active {
+            background-color: #3b82f6; /* Blue-500 */
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            transform: scale(1.05);
+        }
+        .game-nav-btn:hover:not(.active) {
+            background-color: #374151; /* Gray-700 */
+        }
+        .feedback-message {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        .fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        .maze-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+        }
+        .maze-cell {
+            width: 100%;
+            padding-bottom: 100%; /* Aspect ratio 1:1 */
+            position: relative;
+        }
+        .maze-cell.wall { background-color: #4b5563; } /* Gray-600 */
+        .maze-cell.path { background-color: #1f2937; } /* Gray-800 */
+        .maze-agent {
+            background-color: #3b82f6; /* Blue-500 */
+            border-radius: 50%;
+            box-shadow: 0 0 10px #3b82f6;
+        }
+        .maze-exit {
+            background-color: #10b981; /* Emerald-500 */
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+        }
+        .nlp-word {
+            cursor: grab;
+            user-select: none;
+        }
+        .nlp-dropzone {
+            min-height: 50px;
+            border: 2px dashed #4b5563;
+        }
+        .nlp-dropzone.over {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+    <div class="min-h-screen flex flex-col items-center justify-center p-4">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">AI Trainer</span>
+            </h1>
+            <p class="text-lg text-gray-400 mt-2">Un videojuego para aprender los conceptos de la Inteligencia Artificial</p>
+        </header>
+
+        <main class="w-full max-w-4xl glass-card p-6 md:p-8 shadow-2xl">
+            
+            <!-- Game Navigation -->
+            <nav class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+                <button id="nav-supervised" class="game-nav-btn px-4 py-2 rounded-full font-semibold text-gray-300 bg-gray-800 active">1. Aprendizaje Supervisado</button>
+                <button id="nav-reinforcement" class="game-nav-btn px-4 py-2 rounded-full font-semibold text-gray-300 bg-gray-800">2. Aprendizaje por Refuerzo</button>
+                <button id="nav-nlp" class="game-nav-btn px-4 py-2 rounded-full font-semibold text-gray-300 bg-gray-800">3. Lenguaje Natural (PLN)</button>
+            </nav>
+
+            <!-- Game Display Area -->
+            <div id="game-container">
+                <!-- Supervised Learning Game -->
+                <div id="game-supervised" class="game-screen">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-semibold mb-2 text-blue-300">Clasificación de Imágenes</h2>
+                        <p class="text-gray-400 mb-4">Ayuda a la IA a aprender. ¿Qué ves en la imagen?</p>
+                        <details class="text-left bg-gray-900/50 p-3 rounded-lg mb-4 text-sm max-w-xl mx-auto">
+                            <summary class="cursor-pointer font-semibold text-gray-300">¿Qué es el Aprendizaje Supervisado?</summary>
+                            <p class="mt-2 text-gray-400">Es como enseñarle a un niño con tarjetas. Le mostramos a la IA una imagen (el "dato de entrada") y le decimos qué es (la "etiqueta"). Después de ver muchos ejemplos, la IA aprende a identificar los patrones por sí misma. ¡Aquí, tú eres el supervisor que etiqueta los datos!</p>
+                        </details>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-6">
+                        <div class="w-64 h-64 md:w-80 md:h-80 bg-gray-800 rounded-2xl flex items-center justify-center overflow-hidden shadow-lg border border-gray-700">
+                           <img id="supervised-img" src="" alt="Imagen para clasificar" class="w-full h-full object-cover">
+                        </div>
+                        <div id="supervised-feedback" class="feedback-message fade-out h-6 text-lg font-semibold"></div>
+                        <div class="flex gap-4">
+                            <button id="btn-animal-1" data-animal="perro" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition-transform duration-200 hover:scale-105">Perro 🐶</button>
+                            <button id="btn-animal-2" data-animal="gato" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold text-lg transition-transform duration-200 hover:scale-105">Gato 🐱</button>
+                        </div>
+                        <div class="w-full max-w-md bg-gray-800 p-4 rounded-xl text-center">
+                            <p class="font-semibold">Progreso del Entrenamiento</p>
+                            <p class="text-sm text-gray-400"><span id="supervised-correct">0</span> de <span id="supervised-total">0</span> correctos.</p>
+                            <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                                <div id="supervised-progress" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reinforcement Learning Game -->
+                <div id="game-reinforcement" class="game-screen hidden">
+                     <div class="text-center">
+                        <h2 class="text-2xl font-semibold mb-2 text-blue-300">Laberinto de Recompensas</h2>
+                        <p class="text-gray-400 mb-4">Guía al agente a la salida. ¡Cada paso importa!</p>
+                        <details class="text-left bg-gray-900/50 p-3 rounded-lg mb-4 text-sm max-w-xl mx-auto">
+                            <summary class="cursor-pointer font-semibold text-gray-300">¿Qué es el Aprendizaje por Refuerzo?</summary>
+                            <p class="mt-2 text-gray-400">Aquí, la IA aprende por prueba y error. Como entrenar a una mascota, la IA (el "agente") recibe recompensas por acciones correctas (acercarse a la meta) y "castigos" por las incorrectas (chocar con un muro). Su objetivo es conseguir la mayor recompensa posible.</p>
+                        </details>
+                    </div>
+                    <div class="flex flex-col lg:flex-row items-center justify-center gap-8">
+                        <div id="maze-container" class="w-full max-w-sm aspect-square maze-grid rounded-lg overflow-hidden border-2 border-gray-700"></div>
+                        <div class="flex flex-col items-center gap-4">
+                            <div class="text-center bg-gray-800 p-4 rounded-xl">
+                                <p class="text-lg font-semibold">Puntuación de Recompensa:</p>
+                                <p id="reinforcement-score" class="text-4xl font-bold text-blue-400">100</p>
+                            </div>
+                            <div id="reinforcement-feedback" class="h-6 text-lg font-semibold text-emerald-400"></div>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div></div>
+                                <button data-dir="up" class="reinforcement-control bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-2xl">▲</button>
+                                <div></div>
+                                <button data-dir="left" class="reinforcement-control bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-2xl">◀</button>
+                                <button data-dir="down" class="reinforcement-control bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-2xl">▼</button>
+                                <button data-dir="right" class="reinforcement-control bg-gray-700 hover:bg-gray-600 rounded-lg p-4 text-2xl">▶</button>
+                            </div>
+                             <button id="reinforcement-reset" class="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition">Reiniciar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NLP Game -->
+                <div id="game-nlp" class="game-screen hidden">
+                     <div class="text-center">
+                        <h2 class="text-2xl font-semibold mb-2 text-blue-300">Constructor de Diálogos</h2>
+                        <p class="text-gray-400 mb-4">¡La IA necesita tu ayuda para responder! Ordena las palabras.</p>
+                        <details class="text-left bg-gray-900/50 p-3 rounded-lg mb-4 text-sm max-w-2xl mx-auto">
+                            <summary class="cursor-pointer font-semibold text-gray-300">¿Qué es el Procesamiento de Lenguaje Natural?</summary>
+                            <p class="mt-2 text-gray-400">Es la habilidad de la IA para entender, interpretar y generar lenguaje humano. Es lo que permite a los asistentes virtuales como Siri o Alexa conversar contigo. En este juego, ayudarás a la IA a generar una respuesta coherente a partir de fragmentos de texto.</p>
+                        </details>
+                    </div>
+                    <div class="w-full max-w-2xl mx-auto bg-gray-800 p-6 rounded-2xl">
+                        <div class="mb-4">
+                            <p class="font-semibold">El usuario pregunta:</p>
+                            <p id="nlp-prompt" class="text-lg text-blue-300 bg-gray-900/70 p-3 rounded-lg mt-1"></p>
+                        </div>
+                        <div class="mb-6">
+                             <p class="font-semibold mb-2">Construye la respuesta de la IA aquí:</p>
+                             <div id="nlp-dropzone" class="nlp-dropzone flex flex-wrap gap-2 p-3 rounded-lg items-center"></div>
+                        </div>
+                        <div class="mb-6">
+                            <p class="font-semibold mb-2">Palabras disponibles (arrastra y suelta):</p>
+                            <div id="nlp-words-container" class="flex flex-wrap gap-2">
+                                <!-- Word blocks will be inserted here -->
+                            </div>
+                        </div>
+                        <div id="nlp-feedback" class="h-6 text-center text-lg font-semibold mb-4"></div>
+                        <div class="text-center">
+                            <button id="nlp-check" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-lg transition-transform duration-200 hover:scale-105">Verificar Respuesta</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        
+        <footer class="text-center mt-8 text-gray-500 text-sm">
+            <p>Un proyecto interactivo para explicar la Inteligencia Artificial.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- General Game Logic ---
+            const screens = document.querySelectorAll('.game-screen');
+            const navButtons = document.querySelectorAll('.game-nav-btn');
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.id.replace('nav-', 'game-');
+                    
+                    // Hide all screens
+                    screens.forEach(screen => screen.classList.add('hidden'));
+                    
+                    // Show target screen
+                    const targetScreen = document.getElementById(targetId);
+                    if (targetScreen) {
+                        targetScreen.classList.remove('hidden');
+                    }
+                    
+                    // Update active button
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                });
+            });
+            
+            function showFeedback(element, message, isSuccess) {
+                element.textContent = message;
+                element.style.color = isSuccess ? '#34d399' : '#f87171';
+                element.classList.remove('fade-out');
+                element.classList.add('fade-in');
+
+                setTimeout(() => {
+                    element.classList.remove('fade-in');
+                    element.classList.add('fade-out');
+                }, 2000);
+            }
+
+            // --- Supervised Learning Game ---
+            const supervisedImg = document.getElementById('supervised-img');
+            const supervisedFeedback = document.getElementById('supervised-feedback');
+            const btnAnimal1 = document.getElementById('btn-animal-1');
+            const btnAnimal2 = document.getElementById('btn-animal-2');
+            const supervisedCorrectEl = document.getElementById('supervised-correct');
+            const supervisedTotalEl = document.getElementById('supervised-total');
+            const supervisedProgress = document.getElementById('supervised-progress');
+
+            const images = [
+                { url: 'https://placehold.co/400x400/775b4b/ffffff?text=Perro', type: 'perro' },
+                { url: 'https://placehold.co/400x400/4b4237/ffffff?text=Perro', type: 'perro' },
+                { url: 'https://placehold.co/400x400/d4a77e/ffffff?text=Perro', type: 'perro' },
+                { url: 'https://placehold.co/400x400/96785b/ffffff?text=Gato', type: 'gato' },
+                { url: 'https://placehold.co/400x400/3d3d3d/ffffff?text=Gato', type: 'gato' },
+                { url: 'https://placehold.co/400x400/bd9d7c/ffffff?text=Gato', type: 'gato' },
+            ];
+
+            let currentImage;
+            let correctCount = 0;
+            let totalCount = 0;
+
+            function nextImage() {
+                currentImage = images[Math.floor(Math.random() * images.length)];
+                supervisedImg.src = currentImage.url;
+            }
+
+            function updateSupervisedScore() {
+                supervisedCorrectEl.textContent = correctCount;
+                supervisedTotalEl.textContent = totalCount;
+                const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
+                supervisedProgress.style.width = `${accuracy}%`;
+            }
+
+            function handleSupervisedChoice(e) {
+                const chosenAnimal = e.target.dataset.animal;
+                totalCount++;
+                if (chosenAnimal === currentImage.type) {
+                    correctCount++;
+                    showFeedback(supervisedFeedback, '¡Correcto!', true);
+                } else {
+                    showFeedback(supervisedFeedback, 'Incorrecto.', false);
+                }
+                updateSupervisedScore();
+                
+                // Add a small delay before loading the next image
+                setTimeout(nextImage, 1000);
+            }
+
+            btnAnimal1.addEventListener('click', handleSupervisedChoice);
+            btnAnimal2.addEventListener('click', handleSupervisedChoice);
+            
+            // Initial setup
+            nextImage();
+
+            // --- Reinforcement Learning Game ---
+            const mazeContainer = document.getElementById('maze-container');
+            const scoreEl = document.getElementById('reinforcement-score');
+            const feedbackEl = document.getElementById('reinforcement-feedback');
+            const controlButtons = document.querySelectorAll('.reinforcement-control');
+            const resetButton = document.getElementById('reinforcement-reset');
+
+            const MAZE_SIZE = 10;
+            const mazeLayout = [
+                [0,1,0,0,0,1,0,0,0,0],
+                [0,1,0,1,0,1,0,1,1,0],
+                [0,0,0,1,0,0,0,0,1,0],
+                [0,1,1,1,1,1,0,1,1,0],
+                [0,0,0,0,0,1,0,0,0,0],
+                [1,1,1,0,1,1,1,1,1,0],
+                [0,0,0,0,1,0,0,0,0,0],
+                [0,1,1,1,1,0,1,1,1,0],
+                [0,1,0,0,0,0,1,0,0,0],
+                [0,0,0,1,1,1,1,0,1,2], // 2 is the exit
+            ];
+
+            let agentPos = { x: 0, y: 0 };
+            let score = 100;
+
+            function drawMaze() {
+                mazeContainer.innerHTML = '';
+                for (let y = 0; y < MAZE_SIZE; y++) {
+                    for (let x = 0; x < MAZE_SIZE; x++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('maze-cell');
+                        if (mazeLayout[y][x] === 1) cell.classList.add('wall');
+                        else cell.classList.add('path');
+                        
+                        if (x === agentPos.x && y === agentPos.y) {
+                            const agent = document.createElement('div');
+                            agent.className = 'maze-agent absolute inset-1';
+                            cell.appendChild(agent);
+                        }
+                        if (mazeLayout[y][x] === 2) {
+                            const exit = document.createElement('div');
+                            exit.className = 'maze-exit absolute inset-1';
+                            cell.appendChild(exit);
+                        }
+                        mazeContainer.appendChild(cell);
+                    }
+                }
+            }
+            
+            function resetReinforcement() {
+                agentPos = { x: 0, y: 0 };
+                score = 100;
+                feedbackEl.textContent = '';
+                scoreEl.textContent = score;
+                controlButtons.forEach(b => b.disabled = false);
+                drawMaze();
+            }
+
+            function moveAgent(dx, dy) {
+                const newX = agentPos.x + dx;
+                const newY = agentPos.y + dy;
+
+                if (newX < 0 || newX >= MAZE_SIZE || newY < 0 || newY >= MAZE_SIZE) {
+                    return; // Out of bounds
+                }
+
+                const newCell = mazeLayout[newY][newX];
+                if (newCell === 1) { // Hit a wall
+                    score -= 10;
+                    showFeedback(feedbackEl, 'Castigo: -10', false);
+                } else {
+                    score -= 1; // Step cost
+                    agentPos.x = newX;
+                    agentPos.y = newY;
+                    if (newCell === 2) { // Reached exit
+                        score += 50;
+                        feedbackEl.textContent = '¡Meta alcanzada! +50';
+                        feedbackEl.style.color = '#34d399';
+                        controlButtons.forEach(b => b.disabled = true);
+                    } else {
+                       showFeedback(feedbackEl, 'Paso: -1', true);
+                    }
+                }
+                scoreEl.textContent = score;
+                drawMaze();
+            }
+            
+            controlButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const dir = button.dataset.dir;
+                    if (dir === 'up') moveAgent(0, -1);
+                    if (dir === 'down') moveAgent(0, 1);
+                    if (dir === 'left') moveAgent(-1, 0);
+                    if (dir === 'right') moveAgent(1, 0);
+                });
+            });
+            
+            resetButton.addEventListener('click', resetReinforcement);
+            
+            // Initial draw
+            drawMaze();
+
+
+            // --- NLP Game ---
+            const nlpPromptEl = document.getElementById('nlp-prompt');
+            const nlpDropzone = document.getElementById('nlp-dropzone');
+            const nlpWordsContainer = document.getElementById('nlp-words-container');
+            const nlpCheckBtn = document.getElementById('nlp-check');
+            const nlpFeedback = document.getElementById('nlp-feedback');
+
+            const nlpChallenges = [
+                {
+                    prompt: "¿Qué tiempo hace hoy?",
+                    words: ["El", "día", "está", "soleado"],
+                    correct: "El día está soleado"
+                },
+                {
+                    prompt: "¿Cuál es la capital de Francia?",
+                    words: ["La", "capital", "es", "París"],
+                    correct: "La capital es París"
+                },
+                {
+                    prompt: "¿Puedes recomendarme una película?",
+                    words: ["Claro,", "te", "sugiero", "ver", "una", "de", "ciencia", "ficción"],
+                    correct: "Claro, te sugiero ver una de ciencia ficción"
+                }
+            ];
+            let currentNlpChallenge;
+
+            function setupNlpChallenge() {
+                currentNlpChallenge = nlpChallenges[Math.floor(Math.random() * nlpChallenges.length)];
+                nlpPromptEl.textContent = currentNlpChallenge.prompt;
+                
+                nlpWordsContainer.innerHTML = '';
+                nlpDropzone.innerHTML = '';
+                nlpFeedback.textContent = '';
+                
+                const shuffledWords = [...currentNlpChallenge.words].sort(() => Math.random() - 0.5);
+                
+                shuffledWords.forEach(word => {
+                    const wordEl = document.createElement('div');
+                    wordEl.textContent = word;
+                    wordEl.draggable = true;
+                    wordEl.className = 'nlp-word bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-lg';
+                    wordEl.addEventListener('dragstart', e => {
+                        e.dataTransfer.setData('text/plain', e.target.textContent);
+                        setTimeout(() => e.target.classList.add('hidden'), 0);
+                    });
+                    wordEl.addEventListener('dragend', e => {
+                        e.target.classList.remove('hidden');
+                    });
+                    nlpWordsContainer.appendChild(wordEl);
+                });
+            }
+
+            nlpDropzone.addEventListener('dragover', e => {
+                e.preventDefault();
+                nlpDropzone.classList.add('over');
+            });
+            nlpDropzone.addEventListener('dragleave', () => nlpDropzone.classList.remove('over'));
+            nlpDropzone.addEventListener('drop', e => {
+                e.preventDefault();
+                nlpDropzone.classList.remove('over');
+                const word = e.dataTransfer.getData('text/plain');
+                
+                // Find and remove from original container to avoid duplicates
+                const originalWordEl = Array.from(nlpWordsContainer.children).find(child => child.textContent === word && !child.classList.contains('hidden'));
+                if (originalWordEl) {
+                     const wordEl = document.createElement('div');
+                     wordEl.textContent = word;
+                     wordEl.className = 'nlp-word bg-blue-600 px-3 py-1 rounded-lg';
+                     nlpDropzone.appendChild(wordEl);
+                     originalWordEl.remove(); // Remove from source
+                }
+            });
+            
+            nlpCheckBtn.addEventListener('click', () => {
+                const wordsInDropzone = Array.from(nlpDropzone.children).map(child => child.textContent);
+                const userAnswer = wordsInDropzone.join(' ');
+                
+                if (userAnswer === currentNlpChallenge.correct) {
+                    showFeedback(nlpFeedback, '¡Respuesta perfecta!', true);
+                    setTimeout(setupNlpChallenge, 2000);
+                } else {
+                    showFeedback(nlpFeedback, 'No es correcto, intenta de nuevo.', false);
+                }
+            });
+            
+            // Initial Setup
+            setupNlpChallenge();
+        });
+    </script>
+</body>
+</html>
+
