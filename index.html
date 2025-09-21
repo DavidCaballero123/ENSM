@@ -32,6 +32,27 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .stat-change {
+            position: absolute;
+            right: 0;
+            top: -20px;
+            font-weight: bold;
+            animation: floatUp 1.5s ease-out forwards;
+        }
+        .stat-change.positive { color: #4ade80; } /* green-400 */
+        .stat-change.negative { color: #f87171; } /* red-400 */
+        
+        @keyframes floatUp {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-25px); }
+        }
+        .avatar-btn {
+            transition: all 0.2s;
+        }
+        .avatar-btn:hover {
+            transform: scale(1.1);
+            background-color: #38bdf8; /* cyan-400 */
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
@@ -41,16 +62,31 @@
         <!-- Pantalla de Inicio -->
         <div id="start-screen" class="text-center p-8 bg-gray-800 rounded-xl shadow-2xl">
             <h1 class="text-4xl font-bold text-cyan-400 mb-4">Camino a la Identidad</h1>
-            <p class="text-lg text-gray-300 mb-6">Un viaje a través de la adolescencia. Toma decisiones y forja tu propio camino.</p>
-            <p class="text-sm text-gray-400 mb-8">Basado en el "Análisis Integral del Desarrollo Humano", este juego te pone en el lugar de un adolescente. Tus elecciones impactarán tu salud, identidad, vida social y estudios. ¿Estás listo para empezar?</p>
+            <p class="text-lg text-gray-300 mb-6">Un viaje a través de la adolescencia para convertirte en un futuro docente de la Escuela Normal Superior de Michoacán.</p>
+            <p class="text-sm text-gray-400 mb-8">Tus elecciones impactarán tu salud, identidad, vida social y tu preparación académica para ingresar y destacar en la ENSM. ¿Estás listo para empezar el camino del magisterio?</p>
             <button id="start-btn" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg text-xl choice-btn">Comenzar el Viaje</button>
         </div>
 
+        <!-- Pantalla de Selección de Avatar -->
+        <div id="avatar-screen" class="hidden text-center p-8 bg-gray-800 rounded-xl shadow-2xl fade-in">
+            <h2 class="text-3xl font-bold text-yellow-400 mb-6">Elige tu Avatar</h2>
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
+                <button class="avatar-btn text-6xl p-4 bg-gray-700 rounded-full" onclick="selectAvatar('🧑')">🧑</button>
+                <button class="avatar-btn text-6xl p-4 bg-gray-700 rounded-full" onclick="selectAvatar('👩')">👩</button>
+                <button class="avatar-btn text-6xl p-4 bg-gray-700 rounded-full" onclick="selectAvatar('👨‍🦱')">👨‍🦱</button>
+                <button class="avatar-btn text-6xl p-4 bg-gray-700 rounded-full" onclick="selectAvatar('👩‍🦰')">👩‍🦰</button>
+                <button class="avatar-btn text-6xl p-4 bg-gray-700 rounded-full" onclick="selectAvatar('🧑‍🎤')">🧑‍🎤</button>
+                <button class="avatar-btn text-6xl p-4 bg-gray-700 rounded-full" onclick="selectAvatar('🧑‍💻')">🧑‍💻</button>
+            </div>
+        </div>
+        
         <!-- Pantalla de Juego -->
         <div id="game-screen" class="hidden">
-            <div class="bg-gray-800 rounded-xl shadow-2xl p-6 md:p-8">
+            <div class="bg-gray-800 rounded-xl shadow-2xl p-6 md:p-8 relative">
+                <div id="avatar-display" class="absolute top-4 right-4 text-4xl bg-gray-700 rounded-full w-16 h-16 flex items-center justify-center"></div>
                 <div class="mb-6">
-                    <h2 id="stage-title" class="text-2xl font-bold text-center text-yellow-400 mb-6"></h2>
+                    <h2 id="stage-title" class="text-2xl font-bold text-center text-yellow-400 mb-2"></h2>
+                    <p class="text-center text-cyan-400 text-sm mb-4">Escuela Normal Superior de Michoacán</p>
                 </div>
 
                 <!-- Estadísticas -->
@@ -92,6 +128,7 @@
     <script>
         // --- ELEMENTOS DEL DOM ---
         const startScreen = document.getElementById('start-screen');
+        const avatarScreen = document.getElementById('avatar-screen');
         const gameScreen = document.getElementById('game-screen');
         const endScreen = document.getElementById('end-screen');
         
@@ -105,6 +142,7 @@
         const choicesContainer = document.getElementById('choices-container');
         const feedbackCard = document.getElementById('feedback-card');
         const feedbackText = document.getElementById('feedback-text');
+        const avatarDisplay = document.getElementById('avatar-display');
 
         // --- DATOS DEL JUEGO ---
         const STAT_NAMES = {
@@ -114,115 +152,46 @@
             academic: { label: 'Académico', icon: '📚' }
         };
         
-        // Eventos basados en el documento proporcionado
-        const events = [
+        // Eventos principales basados en el documento
+        const storyEvents = [
             // --- Adolescencia Temprana (10-14 años) ---
-            {
-                stage: 'Adolescencia Temprana',
-                text: 'Notas que tu cuerpo está cambiando rápidamente (el "estirón") y te sientes un poco torpe e inseguro. Un amigo te dice: "¿Estás bien? Te ves diferente".',
-                choices: [
-                    { text: 'Confiarle que te sientes raro con tu cuerpo.', effects: { identity: 10, social: 10, health: 5 }, feedback: 'Buena elección. Compartir tus inseguridades fortalece tus lazos sociales y tu autoconocimiento.' },
-                    { text: 'Hacer una broma para ocultar tu incomodidad.', effects: { identity: -5, social: 5 }, feedback: 'El humor puede ser una defensa, pero afrontar tus sentimientos es clave para construir tu identidad.' },
-                    { text: 'Enojarte y decirle que no es su asunto.', effects: { identity: -10, social: -15 }, feedback: 'El humor cambiante es común, pero puede afectar tus relaciones. La comunicación es importante.' }
-                ]
-            },
-            {
-                stage: 'Adolescencia Temprana',
-                text: 'Tus padres quieren saber todo lo que haces y con quién hablas. Sientes una fuerte necesidad de tener tu propio espacio y privacidad.',
-                choices: [
-                    { text: 'Hablar con ellos calmadamente sobre tu necesidad de privacidad.', effects: { identity: 10, social: 5 }, feedback: 'Establecer límites de forma respetuosa es un paso importante hacia la autonomía.' },
-                    { text: 'Ocultarles cosas y volverte más reservado.', effects: { identity: 5, social: -10 }, feedback: 'Si bien buscas autonomía, esto puede generar desconfianza y dañar la relación familiar.' },
-                    { text: 'Desafiar su autoridad constantemente y discutir por todo.', effects: { social: -15, academic: -5 }, feedback: 'El conflicto con los padres es parte del proceso, pero el desafío constante genera estrés.' }
-                ]
-            },
-            {
-                stage: 'Adolescencia Temprana',
-                text: 'Tu grupo de amigos empieza a interesarse en cosas que a ti no te llaman la atención. Te sientes presionado a seguirlos para no quedarte solo.',
-                choices: [
-                    { text: 'Proponer una actividad que a ti te guste.', effects: { identity: 10, social: 5 }, feedback: 'Defender tus propios intereses es fundamental para definir quién eres, más allá del grupo.' },
-                    { text: 'Participar sin ganas para no ser excluido.', effects: { identity: -10, social: 10 }, feedback: 'Priorizar al grupo sobre ti mismo es común, pero puede llevar a la confusión de tu propia identidad.' },
-                    { text: 'Alejarte del grupo y buscar amigos nuevos.', effects: { social: -10 }, feedback: 'El grupo de pares es un gran soporte en esta etapa; a veces solo se necesita comunicación.' }
-                ]
-            },
+            { stage: 'Adolescencia Temprana', text: 'Notas que tu cuerpo está cambiando rápidamente (el "estirón") y te sientes un poco torpe e inseguro. Un amigo te dice: "¿Estás bien? Te ves diferente".', choices: [{ text: 'Confiarle que te sientes raro con tu cuerpo.', effects: { identity: 10, social: 10, health: 5 }, feedback: 'Buena elección. Compartir tus inseguridades fortalece tus lazos sociales y tu autoconocimiento.' },{ text: 'Hacer una broma para ocultar tu incomodidad.', effects: { identity: -5, social: 5 }, feedback: 'El humor puede ser una defensa, pero afrontar tus sentimientos es clave para construir tu identidad.' },{ text: 'Enojarte y decirle que no es su asunto.', effects: { identity: -10, social: -15 }, feedback: 'El humor cambiante es común, pero puede afectar tus relaciones. La comunicación es importante.' }] },
+            { stage: 'Adolescencia Temprana', text: 'Tus padres quieren saber todo lo que haces y con quién hablas. Sientes una fuerte necesidad de tener tu propio espacio y privacidad.', choices: [{ text: 'Hablar con ellos calmadamente sobre tu necesidad de privacidad.', effects: { identity: 10, social: 5 }, feedback: 'Establecer límites de forma respetuosa es un paso importante hacia la autonomía.' },{ text: 'Ocultarles cosas y volverte más reservado.', effects: { identity: 5, social: -10 }, feedback: 'Si bien buscas autonomía, esto puede generar desconfianza y dañar la relación familiar.' },{ text: 'Desafiar su autoridad constantemente y discutir por todo.', effects: { social: -15, academic: -5 }, feedback: 'El conflicto con los padres es parte del proceso, pero el desafío constante genera estrés.' }] },
+            { stage: 'Adolescencia Temprana', text: 'Tu grupo de amigos empieza a interesarse en cosas que a ti no te llaman la atención. Te sientes presionado a seguirlos para no quedarte solo.', choices: [{ text: 'Proponer una actividad que a ti te guste.', effects: { identity: 10, social: 5 }, feedback: 'Defender tus propios intereses es fundamental para definir quién eres, más allá del grupo.' },{ text: 'Participar sin ganas para no ser excluido.', effects: { identity: -10, social: 10 }, feedback: 'Priorizar al grupo sobre ti mismo es común, pero puede llevar a la confusión de tu propia identidad.' },{ text: 'Alejarte del grupo y buscar amigos nuevos.', effects: { social: -10 }, feedback: 'El grupo de pares es un gran soporte en esta etapa; a veces solo se necesita comunicación.' }] },
             // --- Adolescencia Media (14-17 años) ---
-            {
-                stage: 'Adolescencia Media',
-                text: 'Estás en una fiesta y un amigo popular te ofrece un cigarrillo. Todos te están mirando. Sientes la presión del grupo.',
-                choices: [
-                    { text: 'Aceptar para no desentonar.', effects: { health: -15, social: 10 }, feedback: 'Ceder a la presión de grupo es un riesgo común, motivado por el sentimiento de que todos te observan (audiencia imaginaria).' },
-                    { text: 'Rechazarlo amablemente pero con firmeza.', effects: { health: 10, identity: 15, social: -5 }, feedback: 'Tomar decisiones saludables, aunque sean impopulares, fortalece tu identidad y autocontrol.' },
-                    { text: 'Tomarlo y fingir que fumas.', effects: { health: -5, social: 5, identity: -10 }, feedback: 'Intentar encajar a costa de tus valores genera confusión interna sobre quién eres realmente.' }
-                ]
-            },
-             {
-                stage: 'Adolescencia Media',
-                text: 'Te sientes invencible, como si nada malo pudiera pasarte. Un amigo te reta a hacer algo arriesgado, como conducir una moto sin casco.',
-                choices: [
-                    { text: 'Aceptar el reto. ¡La vida es una sola!', effects: { health: -30, social: 10 }, feedback: 'Este sentimiento de omnipotencia es típico de la adolescencia media y puede llevar a conductas de riesgo peligrosas.' },
-                    { text: 'Reconocer el peligro y negarte.', effects: { health: 15, identity: 10 }, feedback: 'Aunque tu cerebro te impulse a la acción, tu capacidad de pensamiento abstracto te permite evaluar consecuencias. ¡Bien hecho!' },
-                    { text: 'Proponer una actividad emocionante pero segura.', effects: { health: 5, social: 15, identity: 5 }, feedback: 'Canalizar la búsqueda de emociones hacia actividades seguras es una estrategia de desarrollo muy madura.' }
-                ]
-            },
-            {
-                stage: 'Adolescencia Media',
-                text: 'Pasas horas en redes sociales, comparando tu vida con las de los demás. Empiezas a sentir que tu vida es aburrida y tú no eres suficiente.',
-                choices: [
-                    { text: 'Limitar tu tiempo en redes y enfocarte en tus hobbies.', effects: { health: 10, identity: 10, social: -5, academic: 5 }, feedback: 'Reconocer el impacto negativo del mundo digital es clave. La identidad se construye en la realidad, no en perfiles online.' },
-                    { text: 'Crear un perfil "perfecto" para competir.', effects: { identity: -15, social: 5 }, feedback: 'Crear identidades falsas te aleja de tu verdadero yo y puede causar ansiedad y problemas de autoestima.' },
-                    { text: 'Hablar con un amigo o familiar sobre cómo te sientes.', effects: { health: 15, identity: 5, social: 10 }, feedback: 'El apoyo de tu red social real es un factor protector fundamental contra los riesgos del mundo digital.' }
-                ]
-            },
-            // --- Adolescencia Tardía (18-21 años) ---
-            {
-                stage: 'Adolescencia Tardía',
-                text: 'Es momento de pensar seriamente en tu futuro (carrera, trabajo). Sientes la presión de tomar una decisión que definirá tu vida.',
-                choices: [
-                    { text: 'Investigar a fondo opciones que se alineen con tus valores e intereses.', effects: { academic: 15, identity: 15 }, feedback: 'Tu pensamiento está ahora orientado al futuro. Usar tu capacidad de análisis para planificar es un signo de madurez.' },
-                    { text: 'Elegir lo que tus padres o la sociedad esperan de ti.', effects: { academic: 5, identity: -15 }, feedback: 'Aunque la relación con tus padres mejora, tomar decisiones para complacer a otros puede llevar a la confusión de roles.' },
-                    { text: 'No pensar en eso y esperar que las cosas se resuelvan solas.', effects: { academic: -20, identity: -10 }, feedback: 'Evitar decisiones importantes puede generar ansiedad. La tarea es comprometerse con metas e ideales propios.' }
-                ]
-            },
-            {
-                stage: 'Adolescencia Tardía',
-                text: 'Tu relación de pareja se ha vuelto muy importante. Tu pareja quiere pasar todo el tiempo contigo, alejándote un poco de tus amigos y estudios.',
-                choices: [
-                    { text: 'Buscar un equilibrio entre pareja, amigos y responsabilidades.', effects: { social: 10, academic: 10, identity: 10 }, feedback: 'Has desarrollado un sentido de identidad más firme que te permite mantener relaciones más estables y equilibradas.' },
-                    { text: 'Priorizar a tu pareja por encima de todo.', effects: { social: -15, academic: -10 }, feedback: 'Las relaciones intensas son parte del desarrollo, pero descuidar otras áreas de tu vida no es saludable a largo plazo.' },
-                    { text: 'Terminar la relación para enfocarte en ti mismo.', effects: { identity: 5, social: -10 }, feedback: 'A veces, tomar distancia es necesario, pero la madurez implica aprender a integrar las diferentes facetas de la vida.' }
-                ]
-            },
-             {
-                stage: 'Adolescencia Tardía',
-                text: 'Miras hacia atrás y te das cuenta de que algunas ideas de tus padres no eran tan malas después de todo. Tienes la oportunidad de hablar con ellos sobre tus planes.',
-                choices: [
-                    { text: 'Compartir tus planes y escuchar sus consejos, pero tomando tu propia decisión.', effects: { identity: 15, social: 15 }, feedback: 'Excelente. Has reaceptado los valores paternos desde una perspectiva más adulta, estableciendo una relación de igual a igual.' },
-                    { text: 'Ignorarlos para demostrar que eres completamente independiente.', effects: { identity: 5, social: -5 }, feedback: 'La independencia no significa rechazar toda influencia, sino integrar aprendizajes y forjar tu propio criterio.' },
-                    { text: 'Volver a depender de ellos para que tomen las decisiones por ti.', effects: { identity: -20, academic: 5 }, feedback: 'Esto indica una dificultad para resolver la crisis de identidad, volviendo a una posición más infantil.' }
-                ]
-            }
+            { stage: 'Adolescencia Media', text: 'Estás en una fiesta y un amigo popular te ofrece un cigarrillo. Todos te están mirando. Sientes la presión del grupo.', choices: [{ text: 'Aceptar para no desentonar.', effects: { health: -15, social: 10 }, feedback: 'Ceder a la presión de grupo es un riesgo común, motivado por el sentimiento de que todos te observan (audiencia imaginaria).' },{ text: 'Rechazarlo amablemente pero con firmeza.', effects: { health: 10, identity: 15, social: -5 }, feedback: 'Tomar decisiones saludables, aunque sean impopulares, fortalece tu identidad y autocontrol.' },{ text: 'Tomarlo y fingir que fumas.', effects: { health: -5, social: 5, identity: -10 }, feedback: 'Intentar encajar a costa de tus valores genera confusión interna sobre quién eres realmente.' }] },
+            { stage: 'Adolescencia Media', text: 'Te sientes invencible, como si nada malo pudiera pasarte. Un amigo te reta a hacer algo arriesgado, como conducir una moto sin casco.', choices: [{ text: 'Aceptar el reto. ¡La vida es una sola!', effects: { health: -30, social: 10 }, feedback: 'Este sentimiento de omnipotencia es típico de la adolescencia media y puede llevar a conductas de riesgo peligrosas.' },{ text: 'Reconocer el peligro y negarte.', effects: { health: 15, identity: 10 }, feedback: 'Aunque tu cerebro te impulse a la acción, tu capacidad de pensamiento abstracto te permite evaluar consecuencias. ¡Bien hecho!' },{ text: 'Proponer una actividad emocionante pero segura.', effects: { health: 5, social: 15, identity: 5 }, feedback: 'Canalizar la búsqueda de emociones hacia actividades seguras es una estrategia de desarrollo muy madura.' }] },
+            { stage: 'Adolescencia Media', text: 'Pasas horas en redes sociales, comparando tu vida con las de los demás. Empiezas a sentir que tu vida es aburrida y tú no eres suficiente.', choices: [{ text: 'Limitar tu tiempo en redes y enfocarte en tus hobbies y estudios.', effects: { health: 10, identity: 10, social: -5, academic: 5 }, feedback: 'Reconocer el impacto negativo del mundo digital es clave. La identidad se construye en la realidad, no en perfiles online.' },{ text: 'Crear un perfil "perfecto" para competir.', effects: { identity: -15, social: 5 }, feedback: 'Crear identidades falsas te aleja de tu verdadero yo y puede causar ansiedad y problemas de autoestima.' },{ text: 'Hablar con un amigo o familiar sobre cómo te sientes.', effects: { health: 15, identity: 5, social: 10 }, feedback: 'El apoyo de tu red social real es un factor protector fundamental contra los riesgos del mundo digital.' }] },
+            // --- Adolescencia Tardía (18-21 años) - TEMÁTICA ENSM ---
+            { stage: 'Adolescencia Tardía', text: 'Es momento de prepararte para el examen de admisión de la Normal Superior. Sientes la presión de una decisión que definirá tu futuro como docente.', choices: [{ text: 'Investigar el plan de estudios de la ENSM y crear un calendario de estudio riguroso.', effects: { academic: 20, identity: 15 }, feedback: 'Tu pensamiento orientado al futuro y tu disciplina demuestran tu vocación. ¡Excelente preparación!' },{ text: 'Estudiar solo lo que tus maestros te dicen, sin explorar más.', effects: { academic: 5, identity: -10 }, feedback: 'Cumplir es bueno, pero la vocación docente requiere iniciativa y pasión por aprender más.' },{ text: 'Confiar en tu suerte y no prepararte demasiado.', effects: { academic: -20, identity: -15 }, feedback: 'La suerte no es una estrategia. El ingreso a la Normal Superior requiere esfuerzo y compromiso.' }] },
+            { stage: 'Adolescencia Tardía', text: 'Tu relación de pareja se ha vuelto muy importante, pero tu preparación para la ENSM consume mucho tiempo.', choices: [{ text: 'Formar un grupo de estudio con tu pareja para apoyarse mutuamente.', effects: { social: 10, academic: 15, identity: 5 }, feedback: 'Combinar tus metas con tus relaciones afectivas es un signo de gran madurez.' },{ text: 'Priorizar a tu pareja, dejando el estudio en segundo plano.', effects: { social: 15, academic: -20 }, feedback: 'Descuidar tus metas a largo plazo por una gratificación inmediata puede traer arrepentimientos.' },{ text: 'Terminar la relación para enfocarte 100% en el examen.', effects: { identity: 5, social: -15, academic: 10 }, feedback: 'A veces hay que hacer sacrificios, pero el aislamiento total puede afectar tu bienestar emocional.' }] },
+            { stage: 'Adolescencia Tardía', text: 'Miras hacia atrás y te das cuenta de que tus padres, algunos de ellos docentes, tenían razón en muchas cosas sobre la disciplina y el esfuerzo.', choices: [{ text: 'Compartirles tu sueño de entrar a la ENSM y pedirles consejo.', effects: { identity: 15, social: 15 }, feedback: 'Excelente. Has establecido una relación adulta con ellos, valorando su experiencia para forjar tu propio camino.' },{ text: 'Ocultarles tus planes para que no se involucren.', effects: { identity: 5, social: -5 }, feedback: 'La independencia no significa rechazar el apoyo, sino saber integrarlo a tus propias decisiones.' },{ text: 'Dejar que ellos decidan si la docencia es para ti.', effects: { identity: -20, academic: -5 }, feedback: 'La vocación debe ser tuya. Dejar que otros decidan por ti es un signo de confusión de identidad.' }] }
+        ];
+
+        const randomEvents = [
+            { text: '¡Evento Sorpresa! Tu banda favorita viene a la ciudad la noche antes de un examen de simulación para la Normal.', choices: [{text: 'Ir al concierto. ¡Una noche para despejarme!', effects: {social: 20, academic: -20, health: -5}, feedback: 'La diversión es importante, pero a veces tiene un costo académico.'}, {text: 'Vender la entrada y enfocarte en la guía de estudio.', effects: {social: -10, academic: 15}, feedback: 'Tomar decisiones responsables es un signo de madurez, aunque duela un poco.'}]},
+            { text: '¡Evento Sorpresa! Te contagias de un resfriado fuerte y tienes que quedarte en cama por dos días.', choices: [{text: 'Aprovechar para descansar y recuperarte.', effects: {health: 15, academic: -10, social: -5}, feedback: 'Escuchar a tu cuerpo es fundamental para la salud a largo plazo.'}, {text: 'Intentar seguir estudiando a pesar del malestar.', effects: {health: -15, academic: -5}, feedback: 'Ignorar las señales de tu cuerpo puede empeorar las cosas y afectar tu rendimiento.'}]},
+            { text: '¡Evento Sorpresa! Encuentras una cartera en la calle con dinero y una identificación.', choices: [{text: 'Buscar al dueño y devolverla.', effects: {identity: 15}, feedback: 'Actuar con base en tus valores éticos fortalece enormemente tu identidad como futuro docente.'}, {text: 'Quedarte el dinero y tirar la cartera.', effects: {identity: -20, social: 5}, feedback: 'Las ganancias fáciles a costa de tus principios erosionan tu auto-concepto.'}]}
         ];
         
         // --- ESTADO DEL JUEGO ---
         let gameState = {};
 
-        function initGameState() {
+        function initGameState(avatar) {
             gameState = {
-                stats: {
-                    health: 60,
-                    identity: 50,
-                    social: 60,
-                    academic: 50
-                },
+                stats: { health: 60, identity: 50, social: 60, academic: 50 },
                 currentStageIndex: 0,
                 eventsInStage: 0,
-                currentEvent: null
+                currentEvent: null,
+                avatar: avatar,
+                hadRandomEvent: false
             };
         }
 
         const stages = ['Adolescencia Temprana', 'Adolescencia Media', 'Adolescencia Tardía'];
 
         // --- LÓGICA DE LA INTERFAZ ---
-        function updateStatsUI() {
+        function updateStatsUI(oldStats = {}) {
             statsContainer.innerHTML = '';
             for (const key in gameState.stats) {
                 const statInfo = STAT_NAMES[key];
@@ -233,6 +202,7 @@
                 if (value < 25) colorClass = 'bg-red-500';
 
                 const statElement = document.createElement('div');
+                statElement.className = "relative";
                 statElement.innerHTML = `
                     <div class="text-sm font-semibold text-gray-300 mb-1">${statInfo.icon} ${statInfo.label}</div>
                     <div class="progress-bar-bg w-full h-4 rounded-full">
@@ -240,6 +210,16 @@
                     </div>
                 `;
                 statsContainer.appendChild(statElement);
+
+                // Mostrar cambio visual
+                const oldValue = oldStats[key];
+                if (oldValue !== undefined && oldValue !== value) {
+                    const diff = value - oldValue;
+                    const changeIndicator = document.createElement('span');
+                    changeIndicator.textContent = `${diff > 0 ? '+' : ''}${diff}`;
+                    changeIndicator.className = `stat-change ${diff > 0 ? 'positive' : 'negative'}`;
+                    statElement.appendChild(changeIndicator);
+                }
             }
         }
 
@@ -251,32 +231,37 @@
             nextBtn.classList.remove('hidden');
         }
 
-        function displayEvent() {
+        function displayEvent(isRandom = false) {
             feedbackCard.classList.add('hidden');
             nextBtn.classList.add('hidden');
 
-            const stageEvents = events.filter(e => e.stage === stages[gameState.currentStageIndex]);
-            if (gameState.eventsInStage >= stageEvents.length) {
-                moveToNextStage();
-                return;
+            if (isRandom) {
+                gameState.currentEvent = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                gameState.hadRandomEvent = true;
+            } else {
+                const stageEvents = storyEvents.filter(e => e.stage === stages[gameState.currentStageIndex]);
+                if (gameState.eventsInStage >= stageEvents.length) {
+                    moveToNextStage();
+                    return;
+                }
+                gameState.currentEvent = stageEvents[gameState.eventsInStage];
+                gameState.hadRandomEvent = false;
             }
-
-            gameState.currentEvent = stageEvents[gameState.eventsInStage];
             
-            stageTitle.textContent = gameState.currentEvent.stage;
+            stageTitle.textContent = gameState.currentEvent.stage || stages[gameState.currentStageIndex];
             eventText.textContent = gameState.currentEvent.text;
             choicesContainer.innerHTML = '';
 
-            gameState.currentEvent.choices.forEach((choice, index) => {
+            gameState.currentEvent.choices.forEach((choice) => {
                 const button = document.createElement('button');
                 button.textContent = choice.text;
                 button.className = 'w-full bg-gray-600 hover:bg-cyan-700 text-white font-semibold py-3 px-4 rounded-lg choice-btn';
                 button.onclick = () => {
-                    // Aplicar efectos
+                    const oldStats = { ...gameState.stats };
                     for (const stat in choice.effects) {
                         gameState.stats[stat] += choice.effects[stat];
                     }
-                    updateStatsUI();
+                    updateStatsUI(oldStats);
                     showFeedback(choice.feedback);
                 };
                 choicesContainer.appendChild(button);
@@ -294,44 +279,60 @@
         }
 
         function nextTurn() {
-            gameState.eventsInStage++;
-            displayEvent();
+            if (gameState.hadRandomEvent) {
+                displayEvent(false);
+            } else {
+                gameState.eventsInStage++;
+                const stageEvents = storyEvents.filter(e => e.stage === stages[gameState.currentStageIndex]);
+                const isLastEventOfStage = gameState.eventsInStage >= stageEvents.length;
+
+                if (!isLastEventOfStage && Math.random() < 0.33) { // 33% de probabilidad de evento aleatorio
+                    displayEvent(true);
+                } else {
+                    displayEvent(false);
+                }
+            }
         }
 
         // --- FLUJO DEL JUEGO ---
-        function startGame() {
-            initGameState();
-            startScreen.classList.add('hidden');
-            endScreen.classList.add('hidden');
+        function selectAvatar(avatar) {
+            initGameState(avatar);
+            avatarDisplay.textContent = gameState.avatar;
+            avatarScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             gameScreen.classList.add('fade-in');
             updateStatsUI();
             displayEvent();
         }
 
+        function showAvatarScreen() {
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            avatarScreen.classList.remove('hidden');
+        }
+
         function endGame() {
             gameScreen.classList.add('hidden');
             endScreen.classList.remove('hidden');
-
             const { health, identity, social, academic } = gameState.stats;
-            const avgStat = (health + identity + social + academic) / 4;
+            const avgStat = (academic + identity);
 
             let title, text;
-            if (identity >= 80 && avgStat >= 60) {
-                title = "¡Identidad Forjada con Éxito!";
-                text = "Has navegado la adolescencia con sabiduría. Lograste un fuerte sentido de quién eres, manteniendo un equilibrio saludable en tu vida. Estás listo para los desafíos de la adultez con una base sólida.";
-            } else if (identity >= 60 && avgStat >= 45) {
-                title = "Un Camino Sólido Recorrido";
-                text = "Tuviste tus altibajos, pero superaste la crisis de identidad vs. confusión de roles. Tienes una buena idea de tus valores y metas, aunque algunas áreas de tu vida necesitaron más atención. Un buen punto de partida para el futuro.";
+
+            if (academic >= 80 && identity >= 70) {
+                title = "¡Felicidades, Normalista!";
+                text = "Has navegado la adolescencia con vocación y disciplina. Tu fuerte sentido de la identidad y tu preparación te han abierto las puertas de la Escuela Normal Superior de Michoacán. Estás en el camino para ser un gran docente.";
+            } else if (academic >= 60 && identity >= 50) {
+                title = "Un Comienzo Prometedor";
+                text = "Lograste tu objetivo de entrar a la Normal, pero el camino no fue fácil. Tienes la vocación, pero deberás esforzarte para equilibrar tu vida personal y académica. ¡El potencial está ahí!";
             } else {
-                title = "Un Viaje Lleno de Turbulencias";
-                text = "La adolescencia fue un periodo complejo y desafiante. La búsqueda de tu identidad fue difícil y te dejó con más preguntas que respuestas. Recuerda, el desarrollo es un proceso continuo y cada experiencia es una lección.";
+                title = "Un Camino por Redefinir";
+                text = "La adolescencia fue un periodo de muchas distracciones. No lograste ingresar a la Normal Superior en este intento. Recuerda que la vocación de enseñar puede encontrar muchos caminos y nunca es tarde para reintentarlo.";
             }
 
             document.getElementById('end-title').textContent = title;
             document.getElementById('end-text').textContent = text;
             
-            // Mostrar estadísticas finales
             const finalStatsContainer = document.getElementById('final-stats');
             finalStatsContainer.innerHTML = '<h3 class="text-xl font-bold mb-2 text-gray-300">Resultado Final</h3>';
             const finalStatsGrid = document.createElement('div');
@@ -350,12 +351,10 @@
         }
 
         // --- EVENT LISTENERS ---
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
+        startBtn.addEventListener('click', showAvatarScreen);
+        restartBtn.addEventListener('click', showAvatarScreen);
         nextBtn.addEventListener('click', nextTurn);
 
     </script>
 </body>
 </html>
-
-
