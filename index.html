@@ -11,23 +11,22 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
         }
-        .progress-bar-bg {
-            background-color: #4a5568; /* gray-700 */
-        }
-        .progress-bar-fg {
-            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
-        }
+        .progress-bar-bg { background-color: #4a5568; }
+        .progress-bar-fg { transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out; }
         .choice-btn {
             transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
         }
         .choice-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -39,19 +38,23 @@
             font-weight: bold;
             animation: floatUp 1.5s ease-out forwards;
         }
-        .stat-change.positive { color: #4ade80; } /* green-400 */
-        .stat-change.negative { color: #f87171; } /* red-400 */
-        
+        .stat-change.positive { color: #4ade80; }
+        .stat-change.negative { color: #f87171; }
         @keyframes floatUp {
             from { opacity: 1; transform: translateY(0); }
             to { opacity: 0; transform: translateY(-25px); }
         }
-        .avatar-btn {
-            transition: all 0.2s;
-        }
+        .avatar-btn { transition: all 0.2s; }
         .avatar-btn:hover {
             transform: scale(1.1);
-            background-color: #38bdf8; /* cyan-400 */
+            background-color: #38bdf8;
+        }
+        .consejo-docente {
+            font-style: italic;
+            color: #9ca3af; /* gray-400 */
+            border-left: 2px solid #38bdf8; /* cyan-400 */
+            padding-left: 0.75rem;
+            margin-top: 0.75rem;
         }
     </style>
 </head>
@@ -88,31 +91,26 @@
                     <h2 id="stage-title" class="text-2xl font-bold text-center text-yellow-400 mb-2"></h2>
                     <p class="text-center text-cyan-400 text-sm mb-4">Escuela Normal Superior de Michoacán</p>
                 </div>
-
-                <!-- Estadísticas -->
-                <div id="stats-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <!-- Las estadísticas se generarán aquí con JS -->
-                </div>
-
-                <!-- Tarjeta de Evento -->
+                <div id="stats-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8"></div>
                 <div id="event-card" class="bg-gray-700 p-6 rounded-lg mb-6 min-h-[150px]">
                     <p id="event-text" class="text-lg text-gray-200"></p>
                 </div>
-
-                <!-- Opciones -->
-                <div id="choices-container" class="grid grid-cols-1 gap-4 mb-6">
-                    <!-- Los botones de opción se generarán aquí con JS -->
-                </div>
-
-                <!-- Retroalimentación -->
-                <div id="feedback-container" class="min-h-[100px]">
+                <div id="choices-container" class="grid grid-cols-1 gap-4 mb-6"></div>
+                <div id="feedback-container" class="min-h-[120px]">
                     <div id="feedback-card" class="hidden bg-gray-900 p-4 rounded-lg">
                         <p id="feedback-text" class="text-center text-gray-300"></p>
+                        <p id="consejo-docente" class="consejo-docente text-sm"></p>
                     </div>
                 </div>
-
                 <button id="next-btn" class="hidden w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg text-lg choice-btn mt-4">Siguiente</button>
             </div>
+        </div>
+
+        <!-- Pantalla de Transición -->
+        <div id="transition-screen" class="hidden text-center p-8 bg-gray-800 rounded-xl shadow-2xl fade-in">
+            <h2 id="transition-title" class="text-3xl font-bold text-yellow-400 mb-4"></h2>
+            <p id="transition-text" class="text-lg text-gray-300 mb-8"></p>
+            <button id="continue-btn" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg text-xl choice-btn">Continuar</button>
         </div>
 
         <!-- Pantalla Final -->
@@ -126,81 +124,98 @@
     </div>
 
     <script>
-        // --- ELEMENTOS DEL DOM ---
-        const startScreen = document.getElementById('start-screen');
-        const avatarScreen = document.getElementById('avatar-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const endScreen = document.getElementById('end-screen');
-        
-        const startBtn = document.getElementById('start-btn');
-        const restartBtn = document.getElementById('restart-btn');
-        const nextBtn = document.getElementById('next-btn');
+        const dom = {
+            startScreen: document.getElementById('start-screen'),
+            avatarScreen: document.getElementById('avatar-screen'),
+            gameScreen: document.getElementById('game-screen'),
+            endScreen: document.getElementById('end-screen'),
+            transitionScreen: document.getElementById('transition-screen'),
+            startBtn: document.getElementById('start-btn'),
+            restartBtn: document.getElementById('restart-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            continueBtn: document.getElementById('continue-btn'),
+            stageTitle: document.getElementById('stage-title'),
+            statsContainer: document.getElementById('stats-container'),
+            eventText: document.getElementById('event-text'),
+            choicesContainer: document.getElementById('choices-container'),
+            feedbackCard: document.getElementById('feedback-card'),
+            feedbackText: document.getElementById('feedback-text'),
+            consejoDocente: document.getElementById('consejo-docente'),
+            avatarDisplay: document.getElementById('avatar-display'),
+            transitionTitle: document.getElementById('transition-title'),
+            transitionText: document.getElementById('transition-text'),
+            endTitle: document.getElementById('end-title'),
+            endText: document.getElementById('end-text'),
+            finalStats: document.getElementById('final-stats'),
+        };
 
-        const stageTitle = document.getElementById('stage-title');
-        const statsContainer = document.getElementById('stats-container');
-        const eventText = document.getElementById('event-text');
-        const choicesContainer = document.getElementById('choices-container');
-        const feedbackCard = document.getElementById('feedback-card');
-        const feedbackText = document.getElementById('feedback-text');
-        const avatarDisplay = document.getElementById('avatar-display');
-
-        // --- DATOS DEL JUEGO ---
         const STAT_NAMES = {
             health: { label: 'Salud', icon: '❤️' },
             identity: { label: 'Identidad', icon: '👤' },
             social: { label: 'Social', icon: '👥' },
-            academic: { label: 'Académico', icon: '📚' }
+            academic: { label: 'Académico', icon: '📚' },
+            vocation: { label: 'Vocación', icon: '❤️‍🔥' }
         };
-        
-        // Eventos principales basados en el documento
+
         const storyEvents = [
             // --- Adolescencia Temprana (10-14 años) ---
-            { stage: 'Adolescencia Temprana', text: 'Notas que tu cuerpo está cambiando rápidamente (el "estirón") y te sientes un poco torpe e inseguro. Un amigo te dice: "¿Estás bien? Te ves diferente".', choices: [{ text: 'Confiarle que te sientes raro con tu cuerpo.', effects: { identity: 10, social: 10, health: 5 }, feedback: 'Buena elección. Compartir tus inseguridades fortalece tus lazos sociales y tu autoconocimiento.' },{ text: 'Hacer una broma para ocultar tu incomodidad.', effects: { identity: -5, social: 5 }, feedback: 'El humor puede ser una defensa, pero afrontar tus sentimientos es clave para construir tu identidad.' },{ text: 'Enojarte y decirle que no es su asunto.', effects: { identity: -10, social: -15 }, feedback: 'El humor cambiante es común, pero puede afectar tus relaciones. La comunicación es importante.' }] },
-            { stage: 'Adolescencia Temprana', text: 'Tus padres quieren saber todo lo que haces y con quién hablas. Sientes una fuerte necesidad de tener tu propio espacio y privacidad.', choices: [{ text: 'Hablar con ellos calmadamente sobre tu necesidad de privacidad.', effects: { identity: 10, social: 5 }, feedback: 'Establecer límites de forma respetuosa es un paso importante hacia la autonomía.' },{ text: 'Ocultarles cosas y volverte más reservado.', effects: { identity: 5, social: -10 }, feedback: 'Si bien buscas autonomía, esto puede generar desconfianza y dañar la relación familiar.' },{ text: 'Desafiar su autoridad constantemente y discutir por todo.', effects: { social: -15, academic: -5 }, feedback: 'El conflicto con los padres es parte del proceso, pero el desafío constante genera estrés.' }] },
-            { stage: 'Adolescencia Temprana', text: 'Tu grupo de amigos empieza a interesarse en cosas que a ti no te llaman la atención. Te sientes presionado a seguirlos para no quedarte solo.', choices: [{ text: 'Proponer una actividad que a ti te guste.', effects: { identity: 10, social: 5 }, feedback: 'Defender tus propios intereses es fundamental para definir quién eres, más allá del grupo.' },{ text: 'Participar sin ganas para no ser excluido.', effects: { identity: -10, social: 10 }, feedback: 'Priorizar al grupo sobre ti mismo es común, pero puede llevar a la confusión de tu propia identidad.' },{ text: 'Alejarte del grupo y buscar amigos nuevos.', effects: { social: -10 }, feedback: 'El grupo de pares es un gran soporte en esta etapa; a veces solo se necesita comunicación.' }] },
+            { stage: 'Adolescencia Temprana', text: 'Notas que tu cuerpo está cambiando rápidamente (el "estirón") y te sientes un poco torpe e inseguro. Un amigo te dice: "¿Estás bien? Te ves diferente".', choices: [{ icon: '💬', text: 'Confiarle que te sientes raro con tu cuerpo.', effects: { identity: 10, social: 10, health: 5, vocation: 5 }, feedback: 'La empatía y la comunicación son claves para un futuro docente.', consejo: 'Consejo: Aceptar el "duelo por el cuerpo infantil perdido" es un paso crucial en esta etapa.' },{ icon: '😂', text: 'Hacer una broma para ocultar tu incomodidad.', effects: { identity: -5, social: 5 }, feedback: 'El humor puede ser una defensa, pero afrontar tus sentimientos es clave.', consejo: 'Consejo: Evitar la introspección puede retrasar la construcción de tu identidad.' },{ icon: '😠', text: 'Enojarte y decirle que no es su asunto.', effects: { identity: -10, social: -15, vocation: -5 }, feedback: 'La paciencia se agota, pero un docente debe aprender a manejar sus emociones.', consejo: 'Consejo: El "humor cambiante" es típico de esta fase, pero la inteligencia emocional se practica.' }] },
+            { stage: 'Adolescencia Temprana', text: 'Tus padres quieren saber todo lo que haces. Sientes una fuerte necesidad de tener tu propio espacio y privacidad.', choices: [{ icon: '🗣️', text: 'Hablar con ellos calmadamente sobre tu necesidad de privacidad.', effects: { identity: 10, social: 5, vocation: 5 }, feedback: 'Establecer límites con respeto es una habilidad social valiosa.', consejo: 'Consejo: La búsqueda de autonomía es el motor del "segundo proceso de individuación".' },{ icon: '🤫', text: 'Ocultarles cosas y volverte más reservado.', effects: { identity: 5, social: -10 }, feedback: 'Si bien buscas autonomía, esto puede generar desconfianza.', consejo: 'Consejo: El conflicto es un mecanismo para forjar la identidad, pero la confianza familiar es un factor protector.' },{ icon: '💥', text: 'Desafiar su autoridad constantemente y discutir por todo.', effects: { social: -15, academic: -5, vocation: -5 }, feedback: 'La confrontación constante agota y no construye.', consejo: 'Consejo: Es normal cuestionar a los "padres idealizados de la infancia", pero el respeto mutuo es clave.' }] },
+            { stage: 'Adolescencia Temprana', text: 'En clase, la mayoría piensa "A" sobre un tema, pero tú crees "B". El maestro pregunta tu opinión.', choices: [{ icon: '🙋', text: 'Defender tu punto de vista con argumentos.', effects: { identity: 15, academic: 5, vocation: 10 }, feedback: 'Tener iniciativa y pensamiento crítico es un rasgo de liderazgo.', consejo: 'Consejo: El pensamiento se vuelve más concreto y extremista, pero ya puedes empezar a ejercitar la lógica.' },{ icon: '😔', text: 'Decir lo mismo que los demás para no destacar.', effects: { identity: -10, social: 5 }, feedback: 'Priorizar al grupo es común, pero puede llevar a la confusión de tu propia identidad.', consejo: 'Consejo: El grupo de pares es un gran soporte, pero la identidad se forja en la diferencia.' },{ icon: '🚶', text: 'Quedarte callado y no decir nada.', effects: { social: -5, academic: -5 }, feedback: 'La timidez es normal, pero la participación activa es clave para aprender.', consejo: 'Consejo: El egocentrismo adolescente te hace sentir observado (audiencia imaginaria), pero es importante superarlo.' }] },
+            { stage: 'Adolescencia Temprana', text: 'Notas que te sale acné y tu olor corporal ha cambiado. Te sientes muy cohibido al respecto.', choices: [{ icon: '🧼', text: 'Investigar sobre higiene y cuidado personal.', effects: { health: 10, identity: 5 }, feedback: 'Hacerte cargo de tu cuerpo es un signo de madurez y auto-cuidado.', consejo: 'Consejo: El aumento de las glándulas sebáceas es un cambio biológico normal. La información es un factor protector.' },{ icon: '🧢', text: 'Intentar ocultarlo con ropa ancha y gorras.', effects: { identity: -10, social: -5 }, feedback: 'La vergüenza por los cambios corporales es común, pero puede afectar tu autoestima.', consejo: 'Consejo: La preocupación por "¿soy normal?" es una constante. La respuesta casi siempre es sí.' },{ icon: '🎮', text: 'Evitar salir y quedarte jugando videojuegos.', effects: { health: -5, social: -15, academic: -5 }, feedback: 'El aislamiento puede parecer una solución, pero agrava la inseguridad.', consejo: 'Consejo: La adicción comportamental a la tecnología es un riesgo psicosocial importante en esta etapa.' }] },
+            
             // --- Adolescencia Media (14-17 años) ---
-            { stage: 'Adolescencia Media', text: 'Estás en una fiesta y un amigo popular te ofrece un cigarrillo. Todos te están mirando. Sientes la presión del grupo.', choices: [{ text: 'Aceptar para no desentonar.', effects: { health: -15, social: 10 }, feedback: 'Ceder a la presión de grupo es un riesgo común, motivado por el sentimiento de que todos te observan (audiencia imaginaria).' },{ text: 'Rechazarlo amablemente pero con firmeza.', effects: { health: 10, identity: 15, social: -5 }, feedback: 'Tomar decisiones saludables, aunque sean impopulares, fortalece tu identidad y autocontrol.' },{ text: 'Tomarlo y fingir que fumas.', effects: { health: -5, social: 5, identity: -10 }, feedback: 'Intentar encajar a costa de tus valores genera confusión interna sobre quién eres realmente.' }] },
-            { stage: 'Adolescencia Media', text: 'Te sientes invencible, como si nada malo pudiera pasarte. Un amigo te reta a hacer algo arriesgado, como conducir una moto sin casco.', choices: [{ text: 'Aceptar el reto. ¡La vida es una sola!', effects: { health: -30, social: 10 }, feedback: 'Este sentimiento de omnipotencia es típico de la adolescencia media y puede llevar a conductas de riesgo peligrosas.' },{ text: 'Reconocer el peligro y negarte.', effects: { health: 15, identity: 10 }, feedback: 'Aunque tu cerebro te impulse a la acción, tu capacidad de pensamiento abstracto te permite evaluar consecuencias. ¡Bien hecho!' },{ text: 'Proponer una actividad emocionante pero segura.', effects: { health: 5, social: 15, identity: 5 }, feedback: 'Canalizar la búsqueda de emociones hacia actividades seguras es una estrategia de desarrollo muy madura.' }] },
-            { stage: 'Adolescencia Media', text: 'Pasas horas en redes sociales, comparando tu vida con las de los demás. Empiezas a sentir que tu vida es aburrida y tú no eres suficiente.', choices: [{ text: 'Limitar tu tiempo en redes y enfocarte en tus hobbies y estudios.', effects: { health: 10, identity: 10, social: -5, academic: 5 }, feedback: 'Reconocer el impacto negativo del mundo digital es clave. La identidad se construye en la realidad, no en perfiles online.' },{ text: 'Crear un perfil "perfecto" para competir.', effects: { identity: -15, social: 5 }, feedback: 'Crear identidades falsas te aleja de tu verdadero yo y puede causar ansiedad y problemas de autoestima.' },{ text: 'Hablar con un amigo o familiar sobre cómo te sientes.', effects: { health: 15, identity: 5, social: 10 }, feedback: 'El apoyo de tu red social real es un factor protector fundamental contra los riesgos del mundo digital.' }] },
+            { stage: 'Adolescencia Media', text: 'Estás en una fiesta y un amigo popular te ofrece un cigarrillo. Todos te están mirando. Sientes la presión del grupo.', choices: [{ icon: '🚬', text: 'Aceptar para no desentonar.', effects: { health: -15, social: 10, identity: -5 }, feedback: 'Ceder a la presión de grupo es un riesgo común en esta etapa.', consejo: 'Consejo: La "audiencia imaginaria" (creer que todos te juzgan) maximiza la presión de grupo.' },{ icon: '🚫', text: 'Rechazarlo amablemente pero con firmeza.', effects: { health: 10, identity: 15, social: -5, vocation: 10 }, feedback: 'Mantener tus principios bajo presión fortalece tu identidad y carácter.', consejo: 'Consejo: Desarrollar habilidades para la vida, como la asertividad, es un factor de protección clave.' },{ icon: '🎭', text: 'Tomarlo y fingir que fumas.', effects: { health: -5, social: 5, identity: -10 }, feedback: 'Intentar encajar a costa de tus valores genera confusión interna.', consejo: 'Consejo: La crisis es "Identidad vs. Confusión de Roles" (Erikson). Actos así alimentan la confusión.' }] },
+            { stage: 'Adolescencia Media', text: 'Te sientes invencible, como si nada malo pudiera pasarte. Un amigo te reta a hacer algo arriesgado.', choices: [{ icon: '🏍️', text: 'Aceptar el reto. ¡La vida es una sola!', effects: { health: -30, social: 10 }, feedback: 'Este sentimiento de omnipotencia puede llevar a conductas de riesgo peligrosas.', consejo: 'Consejo: La "fábula personal" (sentirte único e invulnerable) es una distorsión cognitiva de esta etapa.' },{ icon: '🧠', text: 'Reconocer el peligro y negarte.', effects: { health: 15, identity: 10, vocation: 5 }, feedback: 'Tu capacidad de pensamiento abstracto te permite evaluar consecuencias.', consejo: 'Consejo: Usar el pensamiento hipotético-deductivo (Piaget) para sopesar riesgos es signo de madurez.' },{ icon: '💡', text: 'Proponer una actividad emocionante pero segura.', effects: { health: 5, social: 15, identity: 5, vocation: 10 }, feedback: 'La creatividad para resolver conflictos es una gran cualidad docente.', consejo: 'Consejo: La maduración incompleta de los lóbulos frontales dificulta el control de impulsos, pero no lo imposibilita.' }] },
+            { stage: 'Adolescencia Media', text: 'Pasas horas en redes sociales, comparando tu vida con las de los demás. Empiezas a sentir que tu vida es aburrida y tú no eres suficiente.', choices: [{ icon: '🧘', text: 'Limitar tu tiempo en redes y enfocarte en tus hobbies y estudios.', effects: { health: 10, identity: 10, social: -5, academic: 5, vocation: 5 }, feedback: 'Cuidar tu salud mental y enfocarte en el mundo real es crucial.', consejo: 'Consejo: El mundo digital es un "tercer agente de socialización", pero la identidad debe consolidarse offline.' },{ icon: '👑', text: 'Crear un perfil "perfecto" para competir.', effects: { identity: -15, social: 5 }, feedback: 'Crear identidades falsas te aleja de tu verdadero yo.', consejo: 'Consejo: El impacto en la identidad es un riesgo psicosocial de las nuevas tecnologías.' },{ icon: '🫂', text: 'Hablar con un amigo o familiar sobre cómo te sientes.', effects: { health: 15, identity: 5, social: 10 }, feedback: 'Buscar apoyo en tu red real es un factor protector fundamental.', consejo: 'Consejo: Una buena comunicación familiar y con pares mitiga los factores de riesgo.' }] },
+            { stage: 'Adolescencia Media', text: 'Te sientes profundamente incomprendido por los adultos. Piensas que tus sentimientos son tan intensos que nadie podría entenderlos.', choices: [{ icon: '📓', text: 'Escribir un diario para explorar tus pensamientos.', effects: { identity: 15, health: 5 }, feedback: 'La introspección es una herramienta poderosa para construir el yo.', consejo: 'Consejo: Estás desarrollando la "metacognición" (pensar sobre el pensamiento), lo que aumenta la introspección.' },{ icon: '📢', text: 'Quejarte constantemente de que "nadie te entiende".', effects: { social: -10, identity: -5 }, feedback: 'Aunque te sientas así, esta actitud puede alejar a las personas.', consejo: 'Consejo: Esto es parte de la "fábula personal", la creencia de ser único. Es una fase normal del egocentrismo adolescente.' },{ icon: '🧑‍🤝‍🧑', text: 'Hablar con tus amigos, que parecen sentir lo mismo.', effects: { social: 15, health: 5 }, feedback: 'Compartir experiencias con pares es crucial para sentirse validado.', consejo: 'Consejo: El grupo de pares se convierte en un espacio crucial para la experimentación y la validación.' }] },
+            
             // --- Adolescencia Tardía (18-21 años) - TEMÁTICA ENSM ---
-            { stage: 'Adolescencia Tardía', text: 'Es momento de prepararte para el examen de admisión de la Normal Superior. Sientes la presión de una decisión que definirá tu futuro como docente.', choices: [{ text: 'Investigar el plan de estudios de la ENSM y crear un calendario de estudio riguroso.', effects: { academic: 20, identity: 15 }, feedback: 'Tu pensamiento orientado al futuro y tu disciplina demuestran tu vocación. ¡Excelente preparación!' },{ text: 'Estudiar solo lo que tus maestros te dicen, sin explorar más.', effects: { academic: 5, identity: -10 }, feedback: 'Cumplir es bueno, pero la vocación docente requiere iniciativa y pasión por aprender más.' },{ text: 'Confiar en tu suerte y no prepararte demasiado.', effects: { academic: -20, identity: -15 }, feedback: 'La suerte no es una estrategia. El ingreso a la Normal Superior requiere esfuerzo y compromiso.' }] },
-            { stage: 'Adolescencia Tardía', text: 'Tu relación de pareja se ha vuelto muy importante, pero tu preparación para la ENSM consume mucho tiempo.', choices: [{ text: 'Formar un grupo de estudio con tu pareja para apoyarse mutuamente.', effects: { social: 10, academic: 15, identity: 5 }, feedback: 'Combinar tus metas con tus relaciones afectivas es un signo de gran madurez.' },{ text: 'Priorizar a tu pareja, dejando el estudio en segundo plano.', effects: { social: 15, academic: -20 }, feedback: 'Descuidar tus metas a largo plazo por una gratificación inmediata puede traer arrepentimientos.' },{ text: 'Terminar la relación para enfocarte 100% en el examen.', effects: { identity: 5, social: -15, academic: 10 }, feedback: 'A veces hay que hacer sacrificios, pero el aislamiento total puede afectar tu bienestar emocional.' }] },
-            { stage: 'Adolescencia Tardía', text: 'Miras hacia atrás y te das cuenta de que tus padres, algunos de ellos docentes, tenían razón en muchas cosas sobre la disciplina y el esfuerzo.', choices: [{ text: 'Compartirles tu sueño de entrar a la ENSM y pedirles consejo.', effects: { identity: 15, social: 15 }, feedback: 'Excelente. Has establecido una relación adulta con ellos, valorando su experiencia para forjar tu propio camino.' },{ text: 'Ocultarles tus planes para que no se involucren.', effects: { identity: 5, social: -5 }, feedback: 'La independencia no significa rechazar el apoyo, sino saber integrarlo a tus propias decisiones.' },{ text: 'Dejar que ellos decidan si la docencia es para ti.', effects: { identity: -20, academic: -5 }, feedback: 'La vocación debe ser tuya. Dejar que otros decidan por ti es un signo de confusión de identidad.' }] }
+            { stage: 'Adolescencia Tardía', text: 'Es momento de prepararte para el examen de admisión de la Normal Superior. Sientes la presión de una decisión que definirá tu futuro como docente.', choices: [{ icon: '📚', text: 'Investigar el plan de estudios de la ENSM y crear un calendario de estudio riguroso.', effects: { academic: 20, identity: 15, vocation: 15 }, feedback: 'Tu disciplina y pasión por la enseñanza demuestran tu vocación.', consejo: 'Consejo: El pensamiento se orienta al futuro, basado en metas e ideales. Estás usando tus operaciones formales.' },{ icon: '😑', text: 'Estudiar solo lo que tus maestros te dicen, sin explorar más.', effects: { academic: 5, identity: -10, vocation: -10 }, feedback: 'La vocación docente requiere iniciativa y curiosidad, no solo cumplir.', consejo: 'Consejo: Forjar una identidad implica ir más allá de los roles asignados y explorar por cuenta propia.' },{ icon: '🎲', text: 'Confiar en tu suerte y no prepararte demasiado.', effects: { academic: -20, identity: -15, vocation: -15 }, feedback: 'El ingreso a la Normal Superior requiere esfuerzo y compromiso.', consejo: 'Consejo: El control de impulsos y la capacidad para sopesar riesgos y recompensas es mayor en esta etapa.' }] },
+            { stage: 'Adolescencia Tardía', text: 'Tu relación de pareja se ha vuelto muy importante, pero tu preparación para la ENSM consume mucho tiempo.', choices: [{ icon: '🤝', text: 'Formar un grupo de estudio con tu pareja para apoyarse mutuamente.', effects: { social: 10, academic: 15, identity: 5, vocation: 5 }, feedback: 'Combinar tus metas con tus relaciones afectivas es un signo de gran madurez.', consejo: 'Consejo: Las relaciones de pareja se vuelven más estables y se busca un equilibrio con otras áreas de la vida.' },{ icon: '❤️', text: 'Priorizar a tu pareja, dejando el estudio en segundo plano.', effects: { social: 15, academic: -20 }, feedback: 'Descuidar tus metas a largo plazo puede traer arrepentimientos.', consejo: 'Consejo: La capacidad de compromiso con metas a futuro es un hito de la adolescencia tardía.' },{ icon: '💔', text: 'Terminar la relación para enfocarte 100% en el examen.', effects: { identity: 5, social: -15, academic: 10, health: -5 }, feedback: 'El aislamiento total puede afectar tu bienestar emocional.', consejo: 'Consejo: El apoyo social sigue siendo un factor protector importante, incluso con un enfoque académico.' }] },
+            { stage: 'Adolescencia Tardía', text: 'Miras hacia atrás y te das cuenta de que tus padres, algunos de ellos docentes, tenían razón en muchas cosas sobre la disciplina y el esfuerzo.', choices: [{ icon: '👨‍🏫', text: 'Compartirles tu sueño de entrar a la ENSM y pedirles consejo.', effects: { identity: 15, social: 15, vocation: 10 }, feedback: 'Excelente. Has establecido una relación adulta con ellos, valorando su experiencia.', consejo: 'Consejo: Se produce una "reaceptación de valores paternos", estableciendo una relación más adulta con ellos.' },{ icon: '🤐', text: 'Ocultarles tus planes para que no se involucren.', effects: { identity: 5, social: -5 }, feedback: 'La independencia no significa rechazar el apoyo, sino saber integrarlo.', consejo: 'Consejo: Un sentido de la identidad más firme permite aceptar consejos sin sentir que se pierde autonomía.' },{ icon: '🤷', text: 'Dejar que ellos decidan si la docencia es para ti.', effects: { identity: -20, academic: -5, vocation: -20 }, feedback: 'La vocación debe ser tuya. Dejar que otros decidan por ti es un signo de confusión de identidad.', consejo: 'Consejo: No resolver la crisis de "Identidad vs. Confusión de Roles" puede llevar a la incapacidad de tomar decisiones vitales.' }] },
+            { stage: 'Adolescencia Tardía', text: 'Descubres que tienes una gran habilidad para explicar temas complejos a tus compañeros que tienen dificultades.', choices: [{ icon: '💡', text: 'Organizar sesiones de estudio grupales y voluntarias.', effects: { social: 15, academic: 10, vocation: 20 }, feedback: 'Estás actuando como un verdadero docente antes de serlo. ¡Esa es la vocación!', consejo: 'Consejo: Estrenar y ponerse a prueba en nuevas capacidades es parte del impulso vital hacia la adultez.' },{ icon: '💸', text: 'Ofrecerles tutorías, pero cobrando una pequeña cuota.', effects: { academic: 5, vocation: -10 }, feedback: 'Es válido valorar tu tiempo, pero la vocación de servicio a menudo va primero.', consejo: 'Consejo: El desarrollo moral (Kohlberg) avanza hacia principios éticos universales, más allá del beneficio propio.' },{ icon: '😒', text: 'Guardarte tus conocimientos para asegurar tu propia calificación.', effects: { academic: 5, vocation: -20, social: -10 }, feedback: 'El individualismo extremo choca con la esencia colaborativa de la docencia.', consejo: 'Consejo: Un sistema de valores propio y firme es una de las metas de esta etapa. El egoísmo no es una base sólida.' }] }
         ];
 
         const randomEvents = [
-            { text: '¡Evento Sorpresa! Tu banda favorita viene a la ciudad la noche antes de un examen de simulación para la Normal.', choices: [{text: 'Ir al concierto. ¡Una noche para despejarme!', effects: {social: 20, academic: -20, health: -5}, feedback: 'La diversión es importante, pero a veces tiene un costo académico.'}, {text: 'Vender la entrada y enfocarte en la guía de estudio.', effects: {social: -10, academic: 15}, feedback: 'Tomar decisiones responsables es un signo de madurez, aunque duela un poco.'}]},
-            { text: '¡Evento Sorpresa! Te contagias de un resfriado fuerte y tienes que quedarte en cama por dos días.', choices: [{text: 'Aprovechar para descansar y recuperarte.', effects: {health: 15, academic: -10, social: -5}, feedback: 'Escuchar a tu cuerpo es fundamental para la salud a largo plazo.'}, {text: 'Intentar seguir estudiando a pesar del malestar.', effects: {health: -15, academic: -5}, feedback: 'Ignorar las señales de tu cuerpo puede empeorar las cosas y afectar tu rendimiento.'}]},
-            { text: '¡Evento Sorpresa! Encuentras una cartera en la calle con dinero y una identificación.', choices: [{text: 'Buscar al dueño y devolverla.', effects: {identity: 15}, feedback: 'Actuar con base en tus valores éticos fortalece enormemente tu identidad como futuro docente.'}, {text: 'Quedarte el dinero y tirar la cartera.', effects: {identity: -20, social: 5}, feedback: 'Las ganancias fáciles a costa de tus principios erosionan tu auto-concepto.'}]}
+            { text: '¡Evento Sorpresa! Tu banda favorita viene a la ciudad la noche antes de un examen de simulación.', choices: [{icon: '🎸', text: 'Ir al concierto. ¡Una noche para despejarme!', effects: {social: 20, academic: -20, health: -5}, feedback: 'La diversión es importante, pero a veces tiene un costo académico.', consejo: 'Consejo: El equilibrio entre vida social y responsabilidades es un aprendizaje constante.'}, {icon: '📖', text: 'Vender la entrada y enfocarte en la guía de estudio.', effects: {social: -10, academic: 15, vocation: 5}, feedback: 'Tomar decisiones responsables es un signo de madurez.', consejo: 'Consejo: La orientación al futuro implica a veces sacrificar la gratificación inmediata.'}]},
+            { text: '¡Evento Sorpresa! Te contagias de un resfriado fuerte y tienes que quedarte en cama por dos días.', choices: [{icon: '😴', text: 'Aprovechar para descansar y recuperarte.', effects: {health: 15, academic: -10, social: -5}, feedback: 'Escuchar a tu cuerpo es fundamental para la salud a largo plazo.', consejo: 'Consejo: La salud es un factor de protección. Descuidarla es una conducta de riesgo.'}, {icon: '🤒', text: 'Intentar seguir estudiando a pesar del malestar.', effects: {health: -15, academic: -5}, feedback: 'Ignorar las señales de tu cuerpo puede empeorar las cosas.', consejo: 'Consejo: El estrés y la falta de sueño afectan el rendimiento académico y el bienestar general.'}]},
+            { text: '¡Evento Sorpresa! Un amigo cercano está pasando por un mal momento y necesita tu apoyo emocional.', choices: [{icon: '🫂', text: 'Dedicarle tiempo para escucharlo y apoyarlo.', effects: {social: 15, health: 5, vocation: 10}, feedback: 'La empatía y el apoyo mutuo fortalecen tus lazos y tu carácter.', consejo: 'Consejo: Las relaciones de amistad estables son un pilar en la adolescencia tardía.'}, {icon: '🏃', text: 'Evitarlo porque no sabes qué decir y te incomoda.', effects: {social: -15, identity: -5}, feedback: 'Huir de las emociones de otros demuestra una dificultad para manejar las propias.', consejo: 'Consejo: La inteligencia emocional es una habilidad que se desarrolla y es vital para un docente.'}]},
+            { text: '¡Evento Sorpresa! Te ofrecen unirte a un equipo deportivo que exige mucho entrenamiento.', choices: [{icon: '🏆', text: 'Aceptar el reto y organizar tu tiempo.', effects: {health: 15, social: 10, academic: -5}, feedback: 'El deporte es excelente para la salud y la disciplina.', consejo: 'Consejo: El ejercicio físico regular es un factor de protección clave para un desarrollo saludable.'}, {icon: '🙅', text: 'Rechazarlo para no afectar tus estudios.', effects: {academic: 10, health: -5}, feedback: 'Es una decisión prudente, pero no olvides la importancia de la actividad física.', consejo: 'Consejo: El sedentarismo es una conducta de riesgo. Hay que buscar un equilibrio.'}]},
         ];
         
-        // --- ESTADO DEL JUEGO ---
+        const momentosClave = [
+            { stage: 'Momento Clave', text: 'Un compañero te ofrece las respuestas del próximo examen de simulación para la Normal. "Todos lo hacen", te dice. "Es la única forma de asegurar un lugar". Es una decisión que podría definir tu futuro.', choices: [{icon: '😇', text: 'Rechazarlo de plano y reportar la situación.', effects: {academic: -10, identity: 20, vocation: 30}, feedback: 'Has tomado el camino difícil pero correcto. Tu integridad es tu mayor fortaleza como futuro docente, aunque te ponga en desventaja.', consejo: 'Consejo (Kohlberg): Has actuado desde un nivel postconvencional, basado en principios éticos universales, no en la conveniencia.'}, {icon: '😈', text: 'Aceptar las respuestas. El fin justifica los medios.', effects: {academic: 25, identity: -25, vocation: -40}, feedback: 'Aseguraste una buena nota, pero a costa de tus principios. Un docente que hace trampa, ¿qué podrá enseñar a sus alumnos sobre la honestidad?', consejo: 'Consejo: La delincuencia y las conductas deshonestas son un riesgo social. Esta decisión socava la construcción de una identidad sólida.'}, {icon: '🤫', text: 'No aceptarlas, pero no decir nada para no meterte en problemas.', effects: {identity: -5, vocation: -10}, feedback: 'Evitaste hacer trampa, pero tu silencio te hace cómplice. A veces, la ética requiere acción y valentía.', consejo: 'Consejo (Kohlberg): Te has quedado en un nivel convencional, donde mantener el orden y no tener problemas es más importante que hacer lo correcto.'}]}
+        ];
+
         let gameState = {};
 
         function initGameState(avatar) {
             gameState = {
-                stats: { health: 60, identity: 50, social: 60, academic: 50 },
+                stats: { health: 60, identity: 50, social: 60, academic: 50, vocation: 50 },
                 currentStageIndex: 0,
                 eventsInStage: 0,
                 currentEvent: null,
                 avatar: avatar,
-                hadRandomEvent: false
+                hadRandomEvent: false,
+                momentoClaveDone: false
             };
         }
 
-        const stages = ['Adolescencia Temprana', 'Adolescencia Media', 'Adolescencia Tardía'];
+        const stages = [
+            { name: 'Adolescencia Temprana', desc: 'Inicia el viaje. Tu cuerpo y mente empiezan a cambiar. El foco está en los amigos, la familia y descubrir quién eres en un mundo que de repente parece diferente.' },
+            { name: 'Adolescencia Media', desc: 'Entras en la etapa más intensa. La búsqueda de independencia se acelera, el grupo de pares es tu universo y sientes que puedes comértelo todo. Aquí se toman las decisiones más arriesgadas.' },
+            { name: 'Adolescencia Tardía', desc: 'La recta final. Tu identidad es más sólida, piensas en el futuro y te preparas para el gran reto: convertirte en un aspirante a la Escuela Normal Superior.' },
+        ];
 
-        // --- LÓGICA DE LA INTERFAZ ---
         function updateStatsUI(oldStats = {}) {
-            statsContainer.innerHTML = '';
+            dom.statsContainer.innerHTML = '';
             for (const key in gameState.stats) {
                 const statInfo = STAT_NAMES[key];
                 const value = Math.max(0, Math.min(100, gameState.stats[key]));
-                
                 let colorClass = 'bg-green-500';
                 if (value < 50) colorClass = 'bg-yellow-500';
                 if (value < 25) colorClass = 'bg-red-500';
-
                 const statElement = document.createElement('div');
                 statElement.className = "relative";
                 statElement.innerHTML = `
@@ -209,9 +224,7 @@
                         <div class="progress-bar-fg h-4 rounded-full ${colorClass}" style="width: ${value}%;"></div>
                     </div>
                 `;
-                statsContainer.appendChild(statElement);
-
-                // Mostrar cambio visual
+                dom.statsContainer.appendChild(statElement);
                 const oldValue = oldStats[key];
                 if (oldValue !== undefined && oldValue !== value) {
                     const diff = value - oldValue;
@@ -223,48 +236,56 @@
             }
         }
 
-        function showFeedback(text) {
-            feedbackText.textContent = text;
-            feedbackCard.classList.remove('hidden');
-            feedbackCard.classList.add('fade-in');
-            choicesContainer.childNodes.forEach(button => button.disabled = true);
-            nextBtn.classList.remove('hidden');
+        function showFeedback(text, consejo) {
+            dom.feedbackText.textContent = text;
+            dom.consejoDocente.textContent = consejo;
+            dom.feedbackCard.classList.remove('hidden');
+            dom.feedbackCard.classList.add('fade-in');
+            dom.choicesContainer.childNodes.forEach(button => button.disabled = true);
+            dom.nextBtn.classList.remove('hidden');
         }
 
-        function displayEvent(isRandom = false) {
-            feedbackCard.classList.add('hidden');
-            nextBtn.classList.add('hidden');
+        function displayEvent() {
+            dom.gameScreen.classList.remove('hidden');
+            dom.transitionScreen.classList.add('hidden');
+            dom.feedbackCard.classList.add('hidden');
+            dom.nextBtn.classList.add('hidden');
 
-            if (isRandom) {
-                gameState.currentEvent = randomEvents[Math.floor(Math.random() * randomEvents.length)];
-                gameState.hadRandomEvent = true;
+            const currentStageName = stages[gameState.currentStageIndex].name;
+            const stageEvents = storyEvents.filter(e => e.stage === currentStageName);
+            
+            // Lógica para Momento Clave
+            if (currentStageName === 'Adolescencia Media' && !gameState.momentoClaveDone && Math.random() < 0.4) {
+                 gameState.currentEvent = momentosClave[0];
+                 gameState.momentoClaveDone = true;
+            } else if (gameState.hadRandomEvent) {
+                gameState.currentEvent = stageEvents[gameState.eventsInStage];
+                gameState.hadRandomEvent = false;
             } else {
-                const stageEvents = storyEvents.filter(e => e.stage === stages[gameState.currentStageIndex]);
-                if (gameState.eventsInStage >= stageEvents.length) {
+                 if (gameState.eventsInStage >= stageEvents.length) {
                     moveToNextStage();
                     return;
                 }
                 gameState.currentEvent = stageEvents[gameState.eventsInStage];
-                gameState.hadRandomEvent = false;
             }
             
-            stageTitle.textContent = gameState.currentEvent.stage || stages[gameState.currentStageIndex];
-            eventText.textContent = gameState.currentEvent.text;
-            choicesContainer.innerHTML = '';
+            dom.stageTitle.textContent = gameState.currentEvent.stage;
+            dom.eventText.textContent = gameState.currentEvent.text;
+            dom.choicesContainer.innerHTML = '';
 
             gameState.currentEvent.choices.forEach((choice) => {
                 const button = document.createElement('button');
-                button.textContent = choice.text;
-                button.className = 'w-full bg-gray-600 hover:bg-cyan-700 text-white font-semibold py-3 px-4 rounded-lg choice-btn';
+                button.innerHTML = `<span class="text-2xl">${choice.icon}</span> <span>${choice.text}</span>`;
+                button.className = 'w-full bg-gray-600 hover:bg-cyan-700 text-white font-semibold py-3 px-4 rounded-lg choice-btn text-left';
                 button.onclick = () => {
                     const oldStats = { ...gameState.stats };
                     for (const stat in choice.effects) {
-                        gameState.stats[stat] += choice.effects[stat];
+                        gameState.stats[stat] = Math.max(0, Math.min(100, gameState.stats[stat] + choice.effects[stat]));
                     }
                     updateStatsUI(oldStats);
-                    showFeedback(choice.feedback);
+                    showFeedback(choice.feedback, choice.consejo);
                 };
-                choicesContainer.appendChild(button);
+                dom.choicesContainer.appendChild(button);
             });
         }
         
@@ -274,87 +295,114 @@
             if (gameState.currentStageIndex >= stages.length) {
                 endGame();
             } else {
+                showTransitionScreen();
+            }
+        }
+        
+        function showTransitionScreen() {
+            dom.gameScreen.classList.add('hidden');
+            dom.transitionScreen.classList.remove('hidden');
+            const stage = stages[gameState.currentStageIndex];
+            dom.transitionTitle.textContent = `Iniciando: ${stage.name}`;
+            dom.transitionText.textContent = stage.desc;
+        }
+
+        function nextTurn() {
+            // Si el último evento fue un Momento Clave, volvemos al flujo normal sin avanzar.
+            if(gameState.currentEvent.stage === 'Momento Clave') {
+                 gameState.hadRandomEvent = false; // flag para evitar ciclo
+                 displayEvent();
+                 return;
+            }
+
+            gameState.eventsInStage++;
+            const currentStageName = stages[gameState.currentStageIndex].name;
+            const stageEvents = storyEvents.filter(e => e.stage === currentStageName);
+            const isLastEventOfStage = gameState.eventsInStage >= stageEvents.length;
+
+            if (!isLastEventOfStage && Math.random() < 0.33) {
+                gameState.currentEvent = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                gameState.hadRandomEvent = true;
+                displayEvent(); 
+            } else {
                 displayEvent();
             }
         }
 
-        function nextTurn() {
-            if (gameState.hadRandomEvent) {
-                displayEvent(false);
-            } else {
-                gameState.eventsInStage++;
-                const stageEvents = storyEvents.filter(e => e.stage === stages[gameState.currentStageIndex]);
-                const isLastEventOfStage = gameState.eventsInStage >= stageEvents.length;
-
-                if (!isLastEventOfStage && Math.random() < 0.33) { // 33% de probabilidad de evento aleatorio
-                    displayEvent(true);
-                } else {
-                    displayEvent(false);
-                }
-            }
-        }
-
-        // --- FLUJO DEL JUEGO ---
         function selectAvatar(avatar) {
             initGameState(avatar);
-            avatarDisplay.textContent = gameState.avatar;
-            avatarScreen.classList.add('hidden');
-            gameScreen.classList.remove('hidden');
-            gameScreen.classList.add('fade-in');
-            updateStatsUI();
-            displayEvent();
+            dom.avatarDisplay.textContent = gameState.avatar;
+            dom.avatarScreen.classList.add('hidden');
+            showTransitionScreen();
         }
 
         function showAvatarScreen() {
-            startScreen.classList.add('hidden');
-            endScreen.classList.add('hidden');
-            avatarScreen.classList.remove('hidden');
+            dom.startScreen.classList.add('hidden');
+            dom.endScreen.classList.add('hidden');
+            dom.avatarScreen.classList.remove('hidden');
         }
 
         function endGame() {
-            gameScreen.classList.add('hidden');
-            endScreen.classList.remove('hidden');
-            const { health, identity, social, academic } = gameState.stats;
-            const avgStat = (academic + identity);
+            dom.gameScreen.classList.add('hidden');
+            dom.endScreen.classList.remove('hidden');
+            const { academic, identity, vocation, health, social } = gameState.stats;
 
             let title, text;
 
-            if (academic >= 80 && identity >= 70) {
-                title = "¡Felicidades, Normalista!";
-                text = "Has navegado la adolescencia con vocación y disciplina. Tu fuerte sentido de la identidad y tu preparación te han abierto las puertas de la Escuela Normal Superior de Michoacán. Estás en el camino para ser un gran docente.";
-            } else if (academic >= 60 && identity >= 50) {
-                title = "Un Comienzo Prometedor";
-                text = "Lograste tu objetivo de entrar a la Normal, pero el camino no fue fácil. Tienes la vocación, pero deberás esforzarte para equilibrar tu vida personal y académica. ¡El potencial está ahí!";
+            if (academic >= 80 && identity >= 70 && vocation >= 75) {
+                title = "Final: El Docente Integral";
+                text = "¡Felicidades! No solo ingresaste a la ENSM con excelencia, sino que has forjado una identidad sólida y una vocación inquebrantable. Estás en el camino para ser un educador que inspira, transforma y deja huella.";
+            } else if (academic >= 70 && vocation < 60) {
+                title = "Final: El Técnico Brillante";
+                text = "Tu gran capacidad académica te abrió las puertas de la Normal. Sin embargo, el viaje descuidó tu pasión. Enseñar es más que transmitir datos; es conectar. La ENSM será tu oportunidad para encontrar la vocación que llevas dentro.";
+            } else if (academic < 65 && vocation >= 75) {
+                title = "Final: El Corazón sin Método";
+                text = "No lograste ingresar esta vez, pero tu vocación es inmensa y genuina. El conocimiento técnico se adquiere, pero la pasión por enseñar no se aprende. Prepárate mejor, pule tus métodos y vuelve a intentarlo. Hacen falta docentes como tú.";
+            } else if (academic >= 65 && vocation >= 60) {
+                 title = "Final: El Normalista Prometedor";
+                text = "¡Lo lograste! Ingresaste a la ENSM. El camino tuvo sus desafíos y aprendiste a equilibrar tus distintas facetas. Tienes la capacidad y la vocación. Ahora empieza el verdadero trabajo para convertirte en el gran docente que puedes ser.";
+            } else if (social >= 75 && identity >= 65 && academic < 65) {
+                title = "Final: El Líder Social";
+                text = "El examen de la Normal no salió como esperabas, pero en el camino descubriste algo más grande: tu habilidad para conectar, liderar y ayudar a tu comunidad. La docencia no es el único camino para enseñar. Tu aula es el mundo.";
+            } else if (academic >= 70 && (health < 40 || social < 40)) {
+                title = "Final: El Sacrificio (Burnout)";
+                text = "Ingresaste. A costa de todo. El enfoque absoluto en lo académico te hizo descuidar tu salud y tus relaciones. El éxito no vale de nada si te pierdes a ti mismo en el proceso. La ENSM te exigirá un mejor equilibrio para no consumirte.";
             } else {
-                title = "Un Camino por Redefinir";
-                text = "La adolescencia fue un periodo de muchas distracciones. No lograste ingresar a la Normal Superior en este intento. Recuerda que la vocación de enseñar puede encontrar muchos caminos y nunca es tarde para reintentarlo.";
+                title = "Final: El Confundido";
+                text = "El viaje ha terminado y te sientes más perdido que al principio. No lograste ingresar y no estás seguro de quién eres o qué quieres. Esto no es un fracaso, sino una señal. Tómate un tiempo para el autodescubrimiento. El camino correcto aparecerá cuando estés listo.";
             }
 
-            document.getElementById('end-title').textContent = title;
-            document.getElementById('end-text').textContent = text;
-            
-            const finalStatsContainer = document.getElementById('final-stats');
-            finalStatsContainer.innerHTML = '<h3 class="text-xl font-bold mb-2 text-gray-300">Resultado Final</h3>';
+            dom.endTitle.textContent = title;
+            dom.endText.textContent = text;
+            dom.finalStats.innerHTML = '<h3 class="text-xl font-bold mb-2 text-gray-300">Resultado Final</h3>';
             const finalStatsGrid = document.createElement('div');
-            finalStatsGrid.className = 'grid grid-cols-2 gap-4 max-w-md mx-auto';
+            finalStatsGrid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 max-w-lg mx-auto';
             for (const key in gameState.stats) {
                 const statInfo = STAT_NAMES[key];
-                const value = Math.max(0, Math.min(100, gameState.stats[key]));
+                const value = gameState.stats[key];
                 finalStatsGrid.innerHTML += `
                     <div class="bg-gray-700 p-3 rounded-lg">
-                        <div class="font-semibold">${statInfo.icon} ${statInfo.label}</div>
+                        <div class="font-semibold text-sm">${statInfo.icon} ${statInfo.label}</div>
                         <div class="text-2xl font-bold text-cyan-400">${value}</div>
                     </div>
                 `;
             }
-            finalStatsContainer.appendChild(finalStatsGrid);
+            dom.finalStats.appendChild(finalStatsGrid);
         }
 
-        // --- EVENT LISTENERS ---
-        startBtn.addEventListener('click', showAvatarScreen);
-        restartBtn.addEventListener('click', showAvatarScreen);
-        nextBtn.addEventListener('click', nextTurn);
+        dom.startBtn.addEventListener('click', showAvatarScreen);
+        dom.restartBtn.addEventListener('click', showAvatarScreen);
+        dom.nextBtn.addEventListener('click', nextTurn);
+        dom.continueBtn.addEventListener('click', displayEvent);
+        
+        // Iniciar en la primera pantalla de transición para que el flujo sea consistente
+        dom.continueBtn.onclick = () => {
+             dom.transitionScreen.classList.add('hidden');
+             displayEvent();
+        }
 
     </script>
+</body>
+</html>
 </body>
 </html>
