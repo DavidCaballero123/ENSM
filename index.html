@@ -3,237 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ábaco Nepohuatzin</title>
+    <title>Polígonos en Equilibrio - Aprendizaje Metacognitivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilos personalizados para la funcionalidad del ábaco */
         body {
-            font-family: 'Inter', sans-serif;
-            touch-action: manipulation; /* Mejora la respuesta táctil en móviles */
+            background-color: #f0fdf4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
         }
-
-        .bead {
-            width: 50px;
-            height: 25px;
-            border-radius: 9999px;
-            cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s;
-            box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 2px 3px rgba(0,0,0,0.2);
-            border: 1px solid rgba(0,0,0,0.2);
+        canvas {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            touch-action: none;
         }
-
-        .bead:hover {
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        .polygon-btn {
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .polygon-btn:hover {
             transform: scale(1.05);
-        }
-
-        /* Define el movimiento de las cuentas cuando están activas (movidas hacia la barra) */
-        .upper-bead.active {
-            transform: translateY(34px); /* Mueve las cuentas superiores hacia abajo */
-        }
-        
-        .lower-bead.active {
-            transform: translateY(-34px); /* Mueve las cuentas inferiores hacia arriba */
-        }
-        
-        /* Contenedor principal del ábaco para permitir el desplazamiento horizontal en pantallas pequeñas */
-        .abacus-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch; /* Desplazamiento suave en iOS */
-            scrollbar-width: thin;
-            scrollbar-color: #4a5568 #2d3748;
-        }
-
-        /* Estilos para la barra de desplazamiento */
-        .abacus-container::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .abacus-container::-webkit-scrollbar-track {
-            background: #2d3748;
-            border-radius: 10px;
-        }
-
-        .abacus-container::-webkit-scrollbar-thumb {
-            background-color: #4a5568;
-            border-radius: 10px;
-            border: 2px solid #2d3748;
         }
     </style>
 </head>
-<body class="bg-gray-800 flex items-center justify-center min-h-screen p-4">
+<body class="min-h-screen flex flex-col items-center p-4">
 
-    <div class="w-full max-w-5xl bg-gray-900 rounded-2xl shadow-2xl p-6 text-white text-center">
-        <!-- Título y descripción -->
-        <header class="mb-6">
-            <h1 class="text-3xl md:text-4xl font-bold text-teal-300">Ábaco de Nepohuatzin</h1>
-            <p class="text-gray-400 mt-2">
-                Escuela Normal Superior.
-            </p>
-        </header>
+    <!-- Header -->
+    <div class="w-full max-w-4xl text-center mb-4">
+        <h1 class="text-3xl font-bold text-emerald-700">Polígonos en Equilibrio</h1>
+        <p class="text-emerald-600">Identifica la figura y reflexiona sobre tu pensamiento.</p>
+    </div>
 
-        <!-- Pantalla para mostrar el valor total calculado -->
-        <div id="display" class="bg-gray-800 rounded-lg p-4 mb-6 text-4xl md:text-5xl font-mono text-right break-all">0</div>
-
-        <!-- El ábaco en sí -->
-        <div class="abacus-container pb-4">
-            <div id="abacus" class="bg-gray-800/50 inline-flex flex-nowrap gap-2 md:gap-3 p-4 rounded-lg border-2 border-gray-700 shadow-inner">
-                <!-- Las varillas y cuentas se generarán aquí con JavaScript -->
-            </div>
+    <!-- Game Container -->
+    <div class="relative w-full max-w-2xl">
+        <div id="game-stats" class="flex justify-between mb-2 text-lg font-semibold text-emerald-800">
+            <span>Nivel: <span id="level-display">1</span></span>
+            <span>Puntos: <span id="score-display">0</span></span>
         </div>
+        
+        <canvas id="gameCanvas" class="w-full border-4 border-emerald-200"></canvas>
 
-        <!-- Botón para reiniciar el ábaco -->
-        <button id="reset-button" class="mt-6 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-75">
-            Reiniciar
-        </button>
+        <!-- Controls -->
+        <div id="controls" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+            <!-- Buttons generated by JS -->
+        </div>
+    </div>
+
+    <!-- Metacognition Modal -->
+    <div id="meta-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-6">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border-t-8 border-emerald-500">
+            <h2 class="text-2xl font-bold text-emerald-800 mb-4 flex items-center">
+                <span class="mr-2">🧠</span> Momento de Reflexión
+            </h2>
+            <p id="meta-question" class="text-gray-700 text-lg mb-6 leading-relaxed italic">
+                ¿Cómo sabías que esa figura tenía 5 lados antes de contar uno por uno?
+            </p>
+            <textarea id="meta-answer" class="w-full p-3 border-2 border-emerald-100 rounded-lg mb-4 focus:border-emerald-500 outline-none" rows="3" placeholder="Escribe aquí tu pensamiento..."></textarea>
+            <button id="close-meta" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors">
+                Continuar el desafío
+            </button>
+        </div>
+    </div>
+
+    <!-- Success Feedback Overlay -->
+    <div id="feedback" class="pointer-events-none fixed inset-0 flex items-center justify-center z-40 opacity-0 transition-opacity duration-300">
+        <div id="feedback-text" class="text-6xl font-black transform scale-50 transition-transform duration-300">
+            ¡LOGRADO!
+        </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const abacusContainer = document.getElementById('abacus');
-            const display = document.getElementById('display');
-            const resetButton = document.getElementById('reset-button');
-            const numRods = 13; 
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const levelDisplay = document.getElementById('level-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const controlsContainer = document.getElementById('controls');
+        const metaModal = document.getElementById('meta-modal');
+        const metaQuestionText = document.getElementById('meta-question');
+        const metaAnswerInput = document.getElementById('meta-answer');
+        const closeMetaBtn = document.getElementById('close-meta');
+        const feedback = document.getElementById('feedback');
+        const feedbackText = document.getElementById('feedback-text');
 
-            // Función para inicializar el ábaco, creando las varillas y las cuentas
-            function initializeAbacus() {
-                abacusContainer.innerHTML = ''; // Limpia el contenedor antes de dibujar
+        // Configuración del juego
+        let state = {
+            level: 1,
+            score: 0,
+            currentPolygon: null,
+            isPaused: false,
+            shapesFound: 0
+        };
 
-                // Crea cada varilla de derecha a izquierda (de menor a mayor valor posicional)
-                for (let i = 0; i < numRods; i++) {
-                    const placeValueExponent = BigInt(numRods - 1 - i);
-                    const placeValue = 10n ** placeValueExponent; // Sistema decimal (base 10)
+        const polygons = [
+            { name: 'Triángulo', sides: 3, color: '#ef4444' },
+            { name: 'Cuadrado', sides: 4, color: '#3b82f6' },
+            { name: 'Pentágono', sides: 5, color: '#10b981' },
+            { name: 'Hexágono', sides: 6, color: '#f59e0b' },
+            { name: 'Heptágono', sides: 7, color: '#8b5cf6' },
+            { name: 'Octágono', sides: 8, color: '#ec4899' },
+            { name: 'Eneágono', sides: 9, color: '#64748b' },
+            { name: 'Decágono', sides: 10, color: '#0ea5e9' }
+        ];
 
-                    const rod = document.createElement('div');
-                    // CAMBIO: Se elimina el color de fondo por defecto para añadirlo dinámicamente
-                    rod.className = 'rod flex flex-col items-center p-1.5 rounded-md min-w-[70px]';
-                    rod.dataset.placeValue = placeValue.toString();
-                    
-                    // --- Lógica de color para las columnas ---
-                    let rodColorClass = '';
-                    if (i === 0) {
-                        // La primera columna (izquierda) es amarilla
-                        rodColorClass = 'bg-yellow-800/40';
-                    } else {
-                        // Agrupa las siguientes 12 columnas en grupos de 3
-                        const groupIndex = Math.floor((i - 1) / 3);
-                        const colorPattern = groupIndex % 4; // Usamos 4 para el ciclo de colores
+        const metaQuestions = [
+            "¿En qué te fijaste primero para identificar el polígono?",
+            "¿Qué estrategia usaste para no confundir esta figura con la anterior?",
+            "Si tuvieras que explicarle a un amigo qué es un polígono regular, ¿qué le dirías?",
+            "¿Qué figura te resultó más difícil de reconocer y por qué crees que fue así?",
+            "¿Cómo ha cambiado tu forma de identificar las figuras desde que empezaste el juego?",
+            "¿Sientes que estás más seguro de tus respuestas ahora? ¿Por qué?"
+        ];
 
-                        // Asigna colores según el patrón: rojo, azul, verde, rojo
-                        switch(colorPattern) {
-                            case 0: // Grupo 1 (índices 1,2,3) y Grupo 4 (índices 10,11,12)
-                                rodColorClass = 'bg-red-800/40';
-                                break;
-                            case 1: // Grupo 2 (índices 4,5,6)
-                                rodColorClass = 'bg-blue-800/40';
-                                break;
-                            case 2: // Grupo 3 (índices 7,8,9)
-                                rodColorClass = 'bg-green-800/40';
-                                break;
-                            case 3: // Este caso ahora es el segundo grupo rojo
-                                rodColorClass = 'bg-red-800/40';
-                                // Como el patrón es rojo, azul, verde, rojo de nuevo, el último grupo debe ser rojo
-                                // Re-calculamos el patrón para los 4 grupos de 3
-                                const colorPatternFor12 = Math.floor((i - 1) / 3) % 4;
-                                if (colorPatternFor12 === 0) rodColorClass = 'bg-red-800/40';
-                                if (colorPatternFor12 === 1) rodColorClass = 'bg-blue-800/40';
-                                if (colorPatternFor12 === 2) rodColorClass = 'bg-green-800/40';
-                                if (colorPatternFor12 === 3) rodColorClass = 'bg-red-800/40'; // El último grupo es rojo
-                                break;
-                        }
-                    }
-                    rod.classList.add(rodColorClass);
+        // Inicializar Canvas
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = 400;
+        }
 
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-                    // --- Cuentas Superiores (valor 5) ---
-                    const upperDeck = document.createElement('div');
-                    upperDeck.className = 'upper-deck flex flex-col gap-2 mb-2';
-                    for (let j = 0; j < 3; j++) { 
-                        const bead = document.createElement('div');
-                        bead.className = 'bead upper-bead bg-blue-400';
-                        bead.dataset.value = '5';
-                        upperDeck.appendChild(bead);
-                    }
-                    
-                    // --- Barra Central ---
-                    const bar = document.createElement('div');
-                    bar.className = 'bar w-full h-1.5 bg-black/50 rounded-full my-2';
-                    
-                    // --- Cuentas Inferiores (valor 1) ---
-                    const lowerDeck = document.createElement('div');
-                    lowerDeck.className = 'lower-deck flex flex-col gap-2 mt-2';
-                    for (let k = 0; k < 4; k++) {
-                        const bead = document.createElement('div');
-                        bead.className = 'bead lower-bead bg-orange-400';
-                        bead.dataset.value = '1';
-                        lowerDeck.appendChild(bead);
-                    }
+        // Generar botones de control
+        function createButtons() {
+            controlsContainer.innerHTML = '';
+            polygons.slice(0, Math.min(state.level + 2, polygons.length)).forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = `polygon-btn bg-white border-2 border-emerald-500 text-emerald-700 font-bold py-3 px-2 rounded-xl shadow-md hover:bg-emerald-50`;
+                btn.innerText = p.name;
+                btn.onclick = () => checkAnswer(p.sides);
+                controlsContainer.appendChild(btn);
+            });
+        }
 
-                    // --- Indicador de Valor Posicional ---
-                    const placeValueText = document.createElement('div');
-                    placeValueText.className = 'place-value text-xs text-gray-400 mt-3 font-semibold';
-                    placeValueText.textContent = `x${placeValue.toLocaleString('es-MX')}`;
-
-                    rod.appendChild(upperDeck);
-                    rod.appendChild(bar);
-                    rod.appendChild(lowerDeck);
-                    rod.appendChild(placeValueText);
-                    abacusContainer.appendChild(rod);
-                }
-                addBeadListeners(); // Asigna los eventos a las nuevas cuentas
-            }
-
-            // Función para calcular el valor total y actualizar la pantalla
-            function calculateTotal() {
-                let totalValue = 0n; 
-                const rods = document.querySelectorAll('.rod');
-
-                rods.forEach(rod => {
-                    const placeValue = BigInt(rod.dataset.placeValue);
-                    let rodValue = 0;
-
-                    rod.querySelectorAll('.upper-bead.active').forEach(bead => {
-                        rodValue += parseInt(bead.dataset.value, 10);
-                    });
-
-                    rod.querySelectorAll('.lower-bead.active').forEach(bead => {
-                        rodValue += parseInt(bead.dataset.value, 10);
-                    });
-                    
-                    totalValue += BigInt(rodValue) * placeValue;
-                });
-
-                display.textContent = totalValue.toLocaleString('es-MX');
-            }
-
-            // Función para manejar el clic en una cuenta
-            function handleBeadClick(event) {
-                if (event.target.classList.contains('bead')) {
-                    event.target.classList.toggle('active');
-                    calculateTotal();
-                }
-            }
+        // Dibujar polígono regular
+        function drawPolygon(sides, radius, color) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
             
-            // Función para asignar los event listeners a todas las cuentas
-            function addBeadListeners() {
-                const beads = document.querySelectorAll('.bead');
-                beads.forEach(bead => {
-                    bead.addEventListener('click', handleBeadClick);
-                });
-            }
+            ctx.beginPath();
+            ctx.lineWidth = 8;
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color + '22'; // Transparente
 
-            // Función para reiniciar el estado del ábaco
-            function resetAbacus() {
-                document.querySelectorAll('.bead.active').forEach(bead => {
-                    bead.classList.remove('active');
-                });
-                calculateTotal(); // Actualiza la pantalla a 0
+            for (let i = 0; i < sides; i++) {
+                const angle = (i * 2 * Math.PI / sides) - Math.PI / 2;
+                const x = cx + radius * Math.cos(angle);
+                const y = cy + radius * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
             }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
 
-            // --- Eventos Iniciales ---
-            resetButton.addEventListener('click', resetAbacus);
-            initializeAbacus(); // Dibuja el ábaco al cargar la página
-        });
+            // Dibujar puntos en los vértices
+            for (let i = 0; i < sides; i++) {
+                const angle = (i * 2 * Math.PI / sides) - Math.PI / 2;
+                const x = cx + radius * Math.cos(angle);
+                const y = cy + radius * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#1e293b';
+                ctx.fill();
+            }
+        }
+
+        function spawnPolygon() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Elige un polígono basado en el nivel actual
+            const maxIdx = Math.min(state.level + 1, polygons.length - 1);
+            const randomIdx = Math.floor(Math.random() * (maxIdx + 1));
+            state.currentPolygon = polygons[randomIdx];
+            
+            drawPolygon(state.currentPolygon.sides, 120, state.currentPolygon.color);
+        }
+
+        function checkAnswer(sides) {
+            if (state.isPaused) return;
+
+            if (sides === state.currentPolygon.sides) {
+                showFeedback(true);
+                state.score += 10;
+                state.shapesFound++;
+                scoreDisplay.innerText = state.score;
+                
+                // Subir de nivel cada 3 figuras
+                if (state.shapesFound % 3 === 0) {
+                    state.level++;
+                    levelDisplay.innerText = state.level;
+                    createButtons();
+                    setTimeout(triggerMetacognition, 600);
+                } else {
+                    setTimeout(spawnPolygon, 600);
+                }
+            } else {
+                showFeedback(false);
+            }
+        }
+
+        function showFeedback(correct) {
+            feedback.style.opacity = '1';
+            feedbackText.innerText = correct ? '¡CORRECTO!' : '¡INTENTA OTRA VEZ!';
+            feedbackText.style.color = correct ? '#10b981' : '#ef4444';
+            feedbackText.style.transform = 'scale(1)';
+            
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                feedbackText.style.transform = 'scale(0.5)';
+            }, 500);
+        }
+
+        function triggerMetacognition() {
+            state.isPaused = true;
+            const randomQ = metaQuestions[Math.floor(Math.random() * metaQuestions.length)];
+            metaQuestionText.innerText = randomQ;
+            metaAnswerInput.value = '';
+            metaModal.classList.remove('hidden');
+        }
+
+        closeMetaBtn.onclick = () => {
+            if (metaAnswerInput.value.trim().length < 3) {
+                // Pequeña validación para fomentar la escritura
+                metaAnswerInput.classList.add('border-red-400');
+                setTimeout(() => metaAnswerInput.classList.remove('border-red-400'), 500);
+                return;
+            }
+            metaModal.classList.add('hidden');
+            state.isPaused = false;
+            spawnPolygon();
+        };
+
+        // Iniciar
+        window.onload = () => {
+            createButtons();
+            spawnPolygon();
+        };
     </script>
 </body>
-</html>
-
+    </html>
